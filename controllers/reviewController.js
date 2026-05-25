@@ -1,38 +1,59 @@
-const Review = require('./../models/reviewModel');
-const Booking = require('./../models/bookingModel');
+const Review = require('../models/reviewModel');
+const GuideBooking = require('../models/guideBookingModel');
+const GuideProfile = require('../models/guideProfileModel');
 const factory = require('./handlerFactory');
-const catchAsync = require('./../utils/catchAsync');
-const AppError = require('./../utils/appError');
+const catchAsync = require('../utils/catchAsync');
+const AppError = require('../utils/appError');
 
-exports.setTourUserIds = (req, res, next) => {
-  // Allow nested routes
-  if (!req.body.tour) req.body.tour = req.params.tourId;
+// Set guide profile and user IDs from request
+exports.setGuideUserIds = (req, res, next) => {
+  if (!req.body.guideProfile) req.body.guideProfile = req.params.guideProfileId;
   if (!req.body.user) req.body.user = req.user.id;
   next();
 };
 
 // Verify user has a completed booking before allowing a review
-exports.verifyBooking = catchAsync(async (req, res, next) => {
-  const tourId = req.body.tour || req.params.tourId;
+exports.verifyCompletedBooking = catchAsync(async (req, res, next) => {
+  const bookingId = req.body.booking || req.params.bookingId;
 
-  if (!tourId) {
-    return next(new AppError('Please specify a tour to review', 400));
+  if (!bookingId) {
+    return next(new AppError('Please specify a booking to review.', 400));
   }
 
-  const booking = await Booking.findOne({
-    tour: tourId,
-    user: req.user.id,
+  const booking = await GuideBooking.findOne({
+    _id: bookingId,
+    tourist: req.user.id,
     status: 'completed'
   });
 
   if (!booking) {
     return next(
       new AppError(
-        'You can only review tours that you have booked and experienced',
+        'You can only review guides from completed bookings that you made.',
         403
       )
     );
   }
+
+  // Verify both sides confirmed completion
+  if (
+    !booking.completion ||
+    !booking.completion.guideMarkedCompleted ||
+    !booking.completion.touristConfirmedCompleted
+  ) {
+    return next(
+      new AppError(
+        'Both guide and tourist must confirm trip completion before a review can be submitted.',
+        403
+      )
+    );
+  }
+
+  // Set guideProfile from booking if not provided
+  if (!req.body.guideProfile) {
+    req.body.guideProfile = booking.guideProfile._id || booking.guideProfile;
+  }
+  req.body.booking = bookingId;
 
   next();
 });

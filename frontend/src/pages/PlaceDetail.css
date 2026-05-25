@@ -1,0 +1,44 @@
+.place-hero { position: relative; height: 400px; overflow: hidden; }
+.place-hero-img { width: 100%; height: 100%; object-fit: cover; }
+.place-hero-overlay {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(180deg, transparent 30%, rgba(15, 38, 29, 0.85) 100%);
+  display: flex; align-items: flex-end; padding-bottom: var(--space-2xl);
+}
+.place-hero-overlay h1 { color: white; font-size: 2.5rem; margin: var(--space-sm) 0 var(--space-xs); }
+.place-location { color: rgba(255,255,255,0.8); font-size: 1rem; }
+
+.place-detail-grid {
+  display: grid; grid-template-columns: 1fr 360px; gap: var(--space-2xl);
+  padding: var(--space-2xl) 0;
+}
+
+.place-meta-bar {
+  display: flex; gap: var(--space-xl); padding: var(--space-lg);
+  background: var(--color-stone); border-radius: var(--radius-lg); margin-bottom: var(--space-2xl);
+}
+.meta-item { display: flex; flex-direction: column; gap: 0.25rem; }
+.meta-label { font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em; }
+
+.place-section { margin-bottom: var(--space-2xl); }
+.place-section h2 { font-size: 1.4rem; margin-bottom: var(--space-md); }
+.place-section p { color: var(--color-text-secondary); line-height: 1.8; }
+
+.sidebar-card { position: sticky; top: calc(var(--nav-height) + var(--space-lg)); padding: var(--space-xl); }
+.sidebar-card h3 { font-size: 1.2rem; margin-bottom: var(--space-xs); }
+
+.sidebar-guide {
+  display: flex; align-items: center; gap: var(--space-md);
+  padding: var(--space-md); border-radius: var(--radius-md); border: 1px solid var(--color-border);
+  margin-bottom: var(--space-sm); transition: all var(--transition-fast); text-decoration: none; color: inherit;
+}
+.sidebar-guide:hover { border-color: var(--color-accent); background: var(--color-stone); }
+.sidebar-guide-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
+.sidebar-guide h4 { font-size: 0.9rem; margin-bottom: 0.15rem; }
+
+@media (max-width: 768px) {
+  .place-detail-grid { grid-template-columns: 1fr; }
+  .place-meta-bar { flex-wrap: wrap; }
+  .place-hero { height: 280px; }
+  .sidebar-card { position: static; }
+}

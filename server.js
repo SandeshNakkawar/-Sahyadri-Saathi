@@ -18,7 +18,7 @@ mongoose.connect(DB).then( (con) => {
 
 const port = process.env.PORT || 5000;
 const server = app.listen(port, () => {
-  console.log(`App running on port ${port}...`);
+  console.log(`🏔️  Sahyadri Saathi running on port ${port}...`);
 });
 
 // Initialize Redis connection

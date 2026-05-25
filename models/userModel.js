@@ -16,12 +16,22 @@ const userSchema = new mongoose.Schema({
     validate: [validator.isEmail, 'Please provide a valid email']
   },
   photo: {
-    type: String, 
-    default: 'default.jpg'},
+    type: String,
+    default: 'default.jpg'
+  },
   role: {
     type: String,
-    enum: ['user', 'guide', 'lead-guide', 'admin'],
-    default: 'user'
+    enum: ['tourist', 'guide', 'admin'],
+    default: 'tourist'
+  },
+  phone: {
+    type: String,
+    trim: true
+  },
+  authProvider: {
+    type: String,
+    enum: ['local', 'google', 'supabase'],
+    default: 'local'
   },
   password: {
     type: String,
@@ -46,13 +56,17 @@ const userSchema = new mongoose.Schema({
   wishlist: [
     {
       type: mongoose.Schema.ObjectId,
-      ref: 'Tour'
+      ref: 'Place'
     }
   ],
   active: {
     type: Boolean,
     default: true,
     select: false
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
   }
 });
 

@@ -11,3 +11,10 @@ yarn-error.log*
 dist/
 .DS_Store
 config.env
+
+# Private uploads (guide documents)
+private/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/

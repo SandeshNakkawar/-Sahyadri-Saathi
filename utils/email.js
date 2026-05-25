@@ -8,7 +8,7 @@ class Email {
     this.firstName = user.name ? user.name.split(' ')[0] : 'Traveler';
     this.url = url;
     this.data = data;
-    this.from = `YatraKaro <${process.env.EMAIL_FROM || 'hello@yatrakaro.com'}>`;
+    this.from = `Sahyadri Saathi <${process.env.EMAIL_FROM || 'hello@sahyadrisaathi.com'}>`;
   }
 
   newTransport() {
@@ -67,7 +67,7 @@ class Email {
   // ─── Convenience methods ─────────────────────────────────────
 
   async sendWelcome() {
-    await this.send('welcome', 'Welcome to YatraKaro! 🎉');
+    await this.send('welcome', 'Welcome to Sahyadri Saathi! 🏔️');
   }
 
   async sendPasswordReset() {
@@ -81,7 +81,38 @@ class Email {
     this.data = { ...this.data, ...bookingData };
     await this.send(
       'bookingConfirmation',
-      `Booking Confirmed — ${bookingData.tourName} 🎫`
+      `Booking Confirmed — ${bookingData.guideName || bookingData.tourName} 🎫`
+    );
+  }
+
+  async sendBookingAccepted(bookingData) {
+    this.data = { ...this.data, ...bookingData };
+    await this.send(
+      'bookingAccepted',
+      `Your booking request has been accepted! 🎉`
+    );
+  }
+
+  async sendGuideApproved() {
+    await this.send(
+      'guideApproved',
+      'Congratulations! You are now a verified Sahyadri Saathi guide 🏔️'
+    );
+  }
+
+  async sendGuideRejected(data) {
+    this.data = { ...this.data, ...data };
+    await this.send(
+      'guideRejected',
+      'Update on your guide verification application'
+    );
+  }
+
+  async sendPayoutProcessed(payoutData) {
+    this.data = { ...this.data, ...payoutData };
+    await this.send(
+      'payoutProcessed',
+      `Payout of ₹${payoutData.amount} has been processed 💰`
     );
   }
 

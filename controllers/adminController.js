@@ -1,34 +1,55 @@
-const Booking = require('../models/bookingModel');
-const Tour = require('../models/tourModel');
+const GuideBooking = require('../models/guideBookingModel');
+const Place = require('../models/placeModel');
 const User = require('../models/userModel');
+const GuideProfile = require('../models/guideProfileModel');
 const Review = require('../models/reviewModel');
+const PayoutRequest = require('../models/payoutRequestModel');
 const catchAsync = require('../utils/catchAsync');
 
 // ─── Dashboard Stats ─────────────────────────────────────────────
 exports.getStats = catchAsync(async (req, res, next) => {
-  const [totalBookings, totalRevenue, totalUsers, totalTours, bookingsByStatus] =
-    await Promise.all([
-      Booking.countDocuments(),
-      Booking.aggregate([
-        { $match: { paymentStatus: 'paid' } },
-        { $group: { _id: null, total: { $sum: '$totalPrice' } } }
-      ]),
-      User.countDocuments({ active: { $ne: false } }),
-      Tour.countDocuments(),
-      Booking.aggregate([
-        { $group: { _id: '$status', count: { $sum: 1 } } },
-        { $sort: { count: -1 } }
-      ])
-    ]);
+  const [
+    totalBookings,
+    totalRevenue,
+    totalUsers,
+    totalPlaces,
+    totalGuides,
+    pendingVerifications,
+    pendingPayouts,
+    bookingsByStatus
+  ] = await Promise.all([
+    GuideBooking.countDocuments(),
+    GuideBooking.aggregate([
+      { $match: { paymentStatus: 'paid' } },
+      { $group: { _id: null, total: { $sum: '$totalPrice' } } }
+    ]),
+    User.countDocuments({ active: { $ne: false } }),
+    Place.countDocuments({ isActive: true }),
+    GuideProfile.countDocuments({ verificationStatus: 'approved' }),
+    GuideProfile.countDocuments({ verificationStatus: 'pending_review' }),
+    PayoutRequest.countDocuments({ status: 'requested' }),
+    GuideBooking.aggregate([
+      { $group: { _id: '$status', count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ])
+  ]);
+
+  const totalPlatformEarnings = await GuideBooking.aggregate([
+    { $match: { paymentStatus: 'paid' } },
+    { $group: { _id: null, total: { $sum: '$platformCommissionAmount' } } }
+  ]);
 
   res.status(200).json({
     status: 'success',
     data: {
       totalBookings,
-      totalRevenue:
-        totalRevenue.length > 0 ? totalRevenue[0].total : 0,
+      totalRevenue: totalRevenue.length > 0 ? totalRevenue[0].total : 0,
+      totalPlatformEarnings: totalPlatformEarnings.length > 0 ? totalPlatformEarnings[0].total : 0,
       totalUsers,
-      totalTours,
+      totalPlaces,
+      totalGuides,
+      pendingVerifications,
+      pendingPayouts,
       bookingsByStatus
     }
   });
@@ -40,7 +61,7 @@ exports.getRevenue = catchAsync(async (req, res, next) => {
     ? parseInt(req.query.year, 10)
     : new Date().getFullYear();
 
-  const monthlyRevenue = await Booking.aggregate([
+  const monthlyRevenue = await GuideBooking.aggregate([
     {
       $match: {
         paymentStatus: 'paid',
@@ -54,8 +75,8 @@ exports.getRevenue = catchAsync(async (req, res, next) => {
       $group: {
         _id: { $month: '$createdAt' },
         revenue: { $sum: '$totalPrice' },
-        bookings: { $sum: 1 },
-        guests: { $sum: '$guests' }
+        commission: { $sum: '$platformCommissionAmount' },
+        bookings: { $sum: 1 }
       }
     },
     { $addFields: { month: '$_id' } },
@@ -63,97 +84,90 @@ exports.getRevenue = catchAsync(async (req, res, next) => {
     { $sort: { month: 1 } }
   ]);
 
-  const revenueByTour = await Booking.aggregate([
-    {
-      $match: {
-        paymentStatus: 'paid',
-        createdAt: {
-          $gte: new Date(`${year}-01-01`),
-          $lte: new Date(`${year}-12-31`)
-        }
-      }
-    },
-    {
-      $group: {
-        _id: '$tour',
-        revenue: { $sum: '$totalPrice' },
-        bookings: { $sum: 1 },
-        guests: { $sum: '$guests' }
-      }
-    },
-    {
-      $lookup: {
-        from: 'tours',
-        localField: '_id',
-        foreignField: '_id',
-        as: 'tourInfo'
-      }
-    },
-    { $unwind: '$tourInfo' },
-    {
-      $project: {
-        tourName: '$tourInfo.name',
-        tourSlug: '$tourInfo.slug',
-        revenue: 1,
-        bookings: 1,
-        guests: 1
-      }
-    },
-    { $sort: { revenue: -1 } }
-  ]);
-
   res.status(200).json({
     status: 'success',
     data: {
       year,
       monthlyRevenue,
-      revenueByTour,
-      totalRevenue: monthlyRevenue.reduce((sum, m) => sum + m.revenue, 0)
+      totalRevenue: monthlyRevenue.reduce((sum, m) => sum + m.revenue, 0),
+      totalCommission: monthlyRevenue.reduce((sum, m) => sum + m.commission, 0)
     }
   });
 });
 
-// ─── Recent Bookings ─────────────────────────────────────────────
-exports.getRecentBookings = catchAsync(async (req, res, next) => {
-  const limit = parseInt(req.query.limit, 10) || 10;
-
-  const bookings = await Booking.find()
-    .sort({ createdAt: -1 })
-    .limit(limit);
-
-  res.status(200).json({
-    status: 'success',
-    results: bookings.length,
-    data: { bookings }
-  });
-});
-
-// ─── Bookings by Status ─────────────────────────────────────────
-exports.getBookingsByStatus = catchAsync(async (req, res, next) => {
-  const { status } = req.query;
+// ─── All Users ───────────────────────────────────────────────────
+exports.getAllUsers = catchAsync(async (req, res, next) => {
   const filter = {};
+  if (req.query.role) filter.role = req.query.role;
 
-  if (status) filter.status = status;
-
-  const bookings = await Booking.find(filter).sort({ createdAt: -1 });
+  const users = await User.find(filter).sort({ createdAt: -1 });
 
   res.status(200).json({
     status: 'success',
-    results: bookings.length,
-    data: { bookings }
+    results: users.length,
+    data: { users }
   });
 });
 
-// ─── Get all guides (for assignment dropdown) ────────────────────
-exports.getGuides = catchAsync(async (req, res, next) => {
-  const guides = await User.find({
-    role: { $in: ['guide', 'lead-guide'] },
-    active: { $ne: false }
-  }).select('name email photo role');
+// ─── All Guides ──────────────────────────────────────────────────
+exports.getAllGuides = catchAsync(async (req, res, next) => {
+  const filter = {};
+  if (req.query.status) filter.verificationStatus = req.query.status;
+
+  const guides = await GuideProfile.find(filter)
+    .populate({ path: 'serviceLocations', select: 'name' })
+    .sort({ createdAt: -1 });
 
   res.status(200).json({
     status: 'success',
     results: guides.length,
     data: { guides }
+  });
+});
+
+// ─── All Bookings ────────────────────────────────────────────────
+exports.getAllBookings = catchAsync(async (req, res, next) => {
+  const filter = {};
+  if (req.query.status) filter.status = req.query.status;
+  if (req.query.payoutStatus) filter.payoutStatus = req.query.payoutStatus;
+
+  const bookings = await GuideBooking.find(filter)
+    .populate('place tourist guideProfile')
+    .sort({ createdAt: -1 });
+
+  res.status(200).json({
+    status: 'success',
+    results: bookings.length,
+    data: { bookings }
+  });
+});
+
+// ─── All Payouts ─────────────────────────────────────────────────
+exports.getAllPayouts = catchAsync(async (req, res, next) => {
+  const filter = {};
+  if (req.query.status) filter.status = req.query.status;
+
+  const payouts = await PayoutRequest.find(filter)
+    .populate('guideProfile')
+    .sort({ requestedAt: -1 });
+
+  res.status(200).json({
+    status: 'success',
+    results: payouts.length,
+    data: { payouts }
+  });
+});
+
+// ─── All Reviews ─────────────────────────────────────────────────
+exports.getAllReviews = catchAsync(async (req, res, next) => {
+  const reviews = await Review.find()
+    .populate({ path: 'guideProfile', select: 'displayName' })
+    .populate({ path: 'booking', select: 'place startDate' })
+    .sort({ createdAt: -1 });
+
+  res.status(200).json({
+    status: 'success',
+    results: reviews.length,
+    data: { reviews }
   });
 });

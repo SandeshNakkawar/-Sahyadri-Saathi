@@ -1,6 +1,6 @@
-// review / rating / createdAt / ref to tour / ref to user
+// review / rating / createdAt / ref to guideProfile / ref to user / ref to booking
 const mongoose = require('mongoose');
-const Tour = require('./tourModel');
+const GuideProfile = require('./guideProfileModel');
 
 const reviewSchema = new mongoose.Schema(
   {
@@ -17,10 +17,15 @@ const reviewSchema = new mongoose.Schema(
       type: Date,
       default: Date.now
     },
-    tour: {
+    guideProfile: {
       type: mongoose.Schema.ObjectId,
-      ref: 'Tour',
-      required: [true, 'Review must belong to a tour.']
+      ref: 'GuideProfile',
+      required: [true, 'Review must belong to a guide.']
+    },
+    booking: {
+      type: mongoose.Schema.ObjectId,
+      ref: 'GuideBooking',
+      required: [true, 'Review must reference a booking.']
     },
     user: {
       type: mongoose.Schema.ObjectId,
@@ -34,17 +39,10 @@ const reviewSchema = new mongoose.Schema(
   }
 );
 
-reviewSchema.index({ tour: 1, user: 1 }, { unique: true });
+// One review per booking (allows same tourist to review same guide on future trips)
+reviewSchema.index({ booking: 1 }, { unique: true });
 
 reviewSchema.pre(/^find/, function(next) {
-  // this.populate({
-  //   path: 'tour',
-  //   select: 'name'
-  // }).populate({
-  //   path: 'user',
-  //   select: 'name photo'
-  // });
-
   this.populate({
     path: 'user',
     select: 'name photo'
@@ -52,50 +50,49 @@ reviewSchema.pre(/^find/, function(next) {
   next();
 });
 
-reviewSchema.statics.calcAverageRatings = async function(tourId) {
+reviewSchema.statics.calcAverageRatings = async function(guideProfileId) {
   const stats = await this.aggregate([
     {
-      $match: { tour: tourId }
+      $match: { guideProfile: guideProfileId }
     },
     {
       $group: {
-        _id: '$tour',
+        _id: '$guideProfile',
         nRating: { $sum: 1 },
         avgRating: { $avg: '$rating' }
       }
     }
   ]);
-  // console.log(stats);
 
   if (stats.length > 0) {
-    await Tour.findByIdAndUpdate(tourId, {
+    await GuideProfile.findByIdAndUpdate(guideProfileId, {
       ratingsQuantity: stats[0].nRating,
       ratingsAverage: stats[0].avgRating
     });
   } else {
-    await Tour.findByIdAndUpdate(tourId, {
+    await GuideProfile.findByIdAndUpdate(guideProfileId, {
       ratingsQuantity: 0,
-      ratingsAverage: 4.5
+      ratingsAverage: 0
     });
   }
 };
 
 reviewSchema.post('save', function() {
   // this points to current review
-  this.constructor.calcAverageRatings(this.tour);
+  this.constructor.calcAverageRatings(this.guideProfile);
 });
 
 // findByIdAndUpdate
 // findByIdAndDelete
 reviewSchema.pre(/^findOneAnd/, async function(next) {
-  this.r = await this.findOne();
-  // console.log(this.r);
+  this.r = await this.clone().findOne();
   next();
 });
 
 reviewSchema.post(/^findOneAnd/, async function() {
-  // await this.findOne(); does NOT work here, query has already executed
-  await this.r.constructor.calcAverageRatings(this.r.tour);
+  if (this.r) {
+    await this.r.constructor.calcAverageRatings(this.r.guideProfile);
+  }
 });
 
 const Review = mongoose.model('Review', reviewSchema);

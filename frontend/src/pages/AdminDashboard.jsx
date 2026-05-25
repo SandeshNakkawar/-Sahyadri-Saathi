@@ -1,0 +1,781 @@
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import api from '../api/axios';
+import './Dashboard.css';
+
+export default function AdminDashboard() {
+  const [stats, setStats] = useState(null);
+  const [pendingGuides, setPendingGuides] = useState([]);
+  const [payouts, setPayouts] = useState([]);
+  const [bookings, setBookings] = useState([]);
+  const [places, setPlaces] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState('overview');
+
+  // Review Guide Rejection modal state
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [selectedGuideId, setSelectedGuideId] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [rejectSubmitting, setRejectSubmitting] = useState(false);
+
+  // Payout processing modal state
+  const [showPayoutModal, setShowPayoutModal] = useState(false);
+  const [selectedPayout, setSelectedPayout] = useState(null);
+  const [txnRef, setTxnRef] = useState('');
+  const [adminNote, setAdminNote] = useState('');
+  const [payoutSubmitting, setPayoutSubmitting] = useState(false);
+
+  // Place CRUD Modal State
+  const [showPlaceModal, setShowPlaceModal] = useState(false);
+  const [editingPlace, setEditingPlace] = useState(null);
+  const [placeName, setPlaceName] = useState('');
+  const [placeCategory, setPlaceCategory] = useState('fort');
+  const [placeCity, setPlaceCity] = useState('');
+  const [placeDistrict, setPlaceDistrict] = useState('');
+  const [placeState, setPlaceState] = useState('Maharashtra');
+  const [placeDifficulty, setPlaceDifficulty] = useState('moderate');
+  const [placeDuration, setPlaceDuration] = useState('4-6 hours');
+  const [placeFee, setPlaceFee] = useState(0);
+  const [placeDesc, setPlaceDesc] = useState('');
+  const [placeImage, setPlaceImage] = useState(null);
+  const [placeSubmitting, setPlaceSubmitting] = useState(false);
+
+  useEffect(() => {
+    fetchAdminData();
+  }, [tab]);
+
+  const fetchAdminData = async () => {
+    setLoading(true);
+    try {
+      if (tab === 'overview') {
+        const statsRes = await api.get('/admin/dashboard');
+        setStats(statsRes.data.data);
+      } else if (tab === 'verifications') {
+        const pendingRes = await api.get('/guide-profiles/admin/pending');
+        setPendingGuides(pendingRes.data.data.guides || []);
+      } else if (tab === 'payouts') {
+        const payoutsRes = await api.get('/payout-requests/admin');
+        setPayouts(payoutsRes.data.data.payouts || []);
+      } else if (tab === 'bookings') {
+        const bookingsRes = await api.get('/admin/bookings');
+        setBookings(bookingsRes.data.data.bookings || []);
+      } else if (tab === 'places') {
+        const placesRes = await api.get('/places?limit=100');
+        setPlaces(placesRes.data.data.data || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch admin data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ─── Guide Verification Handlers ────────────────────────────────
+  const handleApproveGuide = async (id) => {
+    if (!window.confirm('Are you sure you want to approve this guide?')) return;
+    try {
+      await api.patch(`/guide-profiles/admin/${id}/approve`);
+      alert('Guide approved successfully! They are now live on the platform.');
+      setPendingGuides(prev => prev.filter(g => g._id !== id));
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to approve guide');
+    }
+  };
+
+  const openRejectModal = (id) => {
+    setSelectedGuideId(id);
+    setRejectionReason('');
+    setShowRejectModal(true);
+  };
+
+  const handleRejectGuideSubmit = async (e) => {
+    e.preventDefault();
+    if (!rejectionReason.trim()) return alert('Please enter a rejection reason.');
+    setRejectSubmitting(true);
+    try {
+      await api.patch(`/guide-profiles/admin/${selectedGuideId}/reject`, {
+        reason: rejectionReason
+      });
+      alert('Guide application rejected.');
+      setShowRejectModal(false);
+      setPendingGuides(prev => prev.filter(g => g._id !== selectedGuideId));
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to reject guide');
+    } finally {
+      setRejectSubmitting(false);
+    }
+  };
+
+  // ─── Payout Processing Handlers ─────────────────────────────────
+  const openPayoutModal = (payout) => {
+    setSelectedPayout(payout);
+    setTxnRef('');
+    setAdminNote('');
+    setShowPayoutModal(true);
+  };
+
+  const handleMarkPaidSubmit = async (e) => {
+    e.preventDefault();
+    if (!txnRef.trim()) return alert('Please enter UPI Transaction Reference No.');
+    setPayoutSubmitting(true);
+    try {
+      await api.patch(`/payout-requests/${selectedPayout._id}/mark-paid`, {
+        transactionRef: txnRef,
+        adminNote
+      });
+      alert('Payout marked as PAID. Guide total earnings updated.');
+      setShowPayoutModal(false);
+      setPayouts(prev => prev.map(p => p._id === selectedPayout._id ? { ...p, status: 'paid', adminTransactionRef: txnRef, adminNote } : p));
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to mark payout as paid');
+    } finally {
+      setPayoutSubmitting(false);
+    }
+  };
+
+  const handleHoldPayout = async (payoutId) => {
+    const note = window.prompt('Enter reason for placing this payout on hold:');
+    if (note === null) return;
+    try {
+      await api.patch(`/payout-requests/${payoutId}/hold`, { adminNote: note || 'On hold by admin' });
+      alert('Payout request status set to ON HOLD.');
+      setPayouts(prev => prev.map(p => p._id === payoutId ? { ...p, status: 'on_hold', adminNote: note || 'On hold by admin' } : p));
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to put payout on hold');
+    }
+  };
+
+  const handleRejectPayout = async (payoutId) => {
+    const note = window.prompt('Enter reason for rejecting this payout request:');
+    if (note === null) return;
+    if (!note.trim()) return alert('A reason is required to reject a payout.');
+    try {
+      await api.patch(`/payout-requests/${payoutId}/reject`, { adminNote: note });
+      alert('Payout request REJECTED.');
+      setPayouts(prev => prev.map(p => p._id === payoutId ? { ...p, status: 'rejected', adminNote: note } : p));
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to reject payout');
+    }
+  };
+
+  // Helper to open private files in a new tab securely as Blobs (prevents token leakage in URL)
+  const viewDoc = async (guideId, docType) => {
+    try {
+      const res = await api.get(`/guide-profiles/${guideId}/documents/${docType}`, {
+        responseType: 'blob'
+      });
+      const blobUrl = URL.createObjectURL(new Blob([res.data], { type: res.headers['content-type'] }));
+      window.open(blobUrl, '_blank');
+    } catch (err) {
+      alert('Failed to load private document. You may be unauthorized or the file is missing.');
+    }
+  };
+
+  // ─── Place CRUD Handlers ────────────────────────────────────────
+  const openAddPlaceModal = () => {
+    setEditingPlace(null);
+    setPlaceName('');
+    setPlaceCategory('fort');
+    setPlaceCity('');
+    setPlaceDistrict('');
+    setPlaceState('Maharashtra');
+    setPlaceDifficulty('moderate');
+    setPlaceDuration('4-6 hours');
+    setPlaceFee(0);
+    setPlaceDesc('');
+    setPlaceImage(null);
+    setShowPlaceModal(true);
+  };
+
+  const openEditPlaceModal = (place) => {
+    setEditingPlace(place);
+    setPlaceName(place.name || '');
+    setPlaceCategory(place.category || 'fort');
+    setPlaceCity(place.city || '');
+    setPlaceDistrict(place.district || '');
+    setPlaceState(place.state || 'Maharashtra');
+    setPlaceDifficulty(place.difficultyLevel || 'moderate');
+    setPlaceDuration(place.estimatedDuration || '4-6 hours');
+    setPlaceFee(place.entryFee || 0);
+    setPlaceDesc(place.description || '');
+    setPlaceImage(null); // Keep existing unless replaced
+    setShowPlaceModal(true);
+  };
+
+  const handlePlaceSubmit = async (e) => {
+    e.preventDefault();
+    if (!placeName.trim() || !placeCity.trim()) return alert('Name and City are required.');
+    
+    setPlaceSubmitting(true);
+    const formData = new FormData();
+    formData.append('name', placeName);
+    formData.append('category', placeCategory);
+    formData.append('city', placeCity);
+    formData.append('district', placeDistrict);
+    formData.append('state', placeState);
+    formData.append('difficultyLevel', placeDifficulty);
+    formData.append('estimatedDuration', placeDuration);
+    formData.append('entryFee', placeFee);
+    formData.append('description', placeDesc);
+    if (placeImage) {
+      formData.append('imageCover', placeImage);
+    }
+
+    try {
+      if (editingPlace) {
+        // Edit existing place
+        const res = await api.patch(`/places/${editingPlace._id}`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        alert('Place updated successfully!');
+        setPlaces(prev => prev.map(p => p._id === editingPlace._id ? res.data.data.data : p));
+      } else {
+        // Add new place
+        const res = await api.post('/places', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        alert('New place added successfully!');
+        setPlaces(prev => [res.data.data.data, ...prev]);
+      }
+      setShowPlaceModal(false);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to save place');
+    } finally {
+      setPlaceSubmitting(false);
+    }
+  };
+
+  const handleDeletePlace = async (id) => {
+    if (!window.confirm('Are you sure you want to permanently delete this place? Guides registered here will lose this location.')) return;
+    try {
+      await api.delete(`/places/${id}`);
+      alert('Place deleted.');
+      setPlaces(prev => prev.filter(p => p._id !== id));
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to delete place');
+    }
+  };
+
+  return (
+    <div className="dashboard-page container section">
+      <div className="dashboard-header">
+        <div>
+          <h1>Admin Control Panel</h1>
+          <p className="text-muted">Monitor and oversee the Sahyadri Saathi guide marketplace</p>
+        </div>
+      </div>
+
+      {/* Admin Tabs */}
+      <div className="dash-tabs">
+        <button className={`dash-tab ${tab === 'overview' ? 'active' : ''}`} onClick={() => setTab('overview')}>
+          📊 Overview
+        </button>
+        <button className={`dash-tab ${tab === 'verifications' ? 'active' : ''}`} onClick={() => setTab('verifications')}>
+          🔍 Guide Verifications ({stats?.pendingVerifications || pendingGuides.length || 0})
+        </button>
+        <button className={`dash-tab ${tab === 'payouts' ? 'active' : ''}`} onClick={() => setTab('payouts')}>
+          💳 Payout Requests ({stats?.pendingPayouts || payouts.filter(p => p.status === 'requested').length || 0})
+        </button>
+        <button className={`dash-tab ${tab === 'bookings' ? 'active' : ''}`} onClick={() => setTab('bookings')}>
+          🥾 All Bookings
+        </button>
+        <button className={`dash-tab ${tab === 'places' ? 'active' : ''}`} onClick={() => setTab('places')}>
+          🏰 Places Management
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="loading-page">
+          <div className="spinner"></div>
+          <p>Loading dashboard workspace...</p>
+        </div>
+      ) : (
+        <>
+          {/* Tab Content: OVERVIEW */}
+          {tab === 'overview' && stats && (
+            <div className="overview-tab animate-fade-in">
+              <div className="stats-grid">
+                <div className="stat-card">
+                  <div className="stat-icon">💰</div>
+                  <div className="stat-info">
+                    <span className="stat-value">₹{stats.totalRevenue}</span>
+                    <span className="stat-label">Total Booking Revenue</span>
+                  </div>
+                </div>
+                <div className="stat-card accent">
+                  <div className="stat-icon">📈</div>
+                  <div className="stat-info">
+                    <span className="stat-value">₹{stats.totalPlatformEarnings}</span>
+                    <span className="stat-label">Platform Fees (15%)</span>
+                  </div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-icon">🥾</div>
+                  <div className="stat-info">
+                    <span className="stat-value">{stats.totalBookings}</span>
+                    <span className="stat-label">Total Trips Booked</span>
+                  </div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-icon">🧭</div>
+                  <div className="stat-info">
+                    <span className="stat-value">{stats.totalGuides}</span>
+                    <span className="stat-label">Verified Guides</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="dashboard-grid" style={{ marginTop: '2rem' }}>
+                <div className="card" style={{ padding: '2rem' }}>
+                  <h3>System Status & Alerts</h3>
+                  <p className="text-muted" style={{ marginBottom: '1.5rem' }}>Attention required items</p>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div className="flex flex-between" style={{ padding: '1rem', background: 'var(--color-bg)', borderRadius: 'var(--radius-md)', borderLeft: '4px solid var(--color-accent)' }}>
+                      <div>
+                        <strong>Pending Guide Onboardings</strong>
+                        <p className="text-sm text-muted">Verification documents require manual validation</p>
+                      </div>
+                      <button onClick={() => setTab('verifications')} className="btn btn-accent btn-sm">
+                        Review {stats.pendingVerifications} guides
+                      </button>
+                    </div>
+
+                    <div className="flex flex-between" style={{ padding: '1rem', background: 'var(--color-bg)', borderRadius: 'var(--radius-md)', borderLeft: '4px solid var(--color-primary)' }}>
+                      <div>
+                        <strong>Requested Guide Payouts</strong>
+                        <p className="text-sm text-muted">Guide payouts that need bank transfer & confirmation</p>
+                      </div>
+                      <button onClick={() => setTab('payouts')} className="btn btn-primary btn-sm">
+                        Process {stats.pendingPayouts} payouts
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="dashboard-sidebar-card">
+                  <h3>Quick Numbers</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '0.5rem' }}>
+                    <div className="flex flex-between">
+                      <span className="text-muted">Total Registered Users</span>
+                      <strong>{stats.totalUsers}</strong>
+                    </div>
+                    <div className="flex flex-between">
+                      <span className="text-muted">Total Monitored Places</span>
+                      <strong>{stats.totalPlaces}</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tab Content: VERIFICATIONS */}
+          {tab === 'verifications' && (
+            <div className="verifications-tab animate-fade-in">
+              <h3>Guides Awaiting Verification</h3>
+              <p className="text-muted" style={{ marginBottom: '1.5rem' }}>Verify their submitted documents and set public visibility.</p>
+              
+              {pendingGuides.length === 0 ? (
+                <p className="text-muted" style={{ padding: '2rem 0' }}>No guide profiles currently pending review.</p>
+              ) : (
+                <div className="bookings-list">
+                  {pendingGuides.map(guide => (
+                    <div className="booking-item card" key={guide._id}>
+                      <div className="booking-item-header">
+                        <div>
+                          <h4>{guide.displayName}</h4>
+                          <p className="text-muted text-sm">Email: {guide.user?.email || 'N/A'} | Phone: {guide.user?.phone || 'N/A'}</p>
+                        </div>
+                        <span className="badge badge-pending">Pending Review</span>
+                      </div>
+                      
+                      <div className="booking-item-details">
+                        <div><strong>Base City:</strong> {guide.baseCity}</div>
+                        <div><strong>Experience:</strong> {guide.experienceYears} Years</div>
+                        <div><strong>Daily Rate:</strong> ₹{guide.pricePerDay}</div>
+                        <div><strong>Languages:</strong> {guide.languages?.join(', ')}</div>
+                        <div className="grid-colspan-all"><strong>Bio:</strong> "{guide.bio}"</div>
+                      </div>
+
+                      <div style={{ marginTop: '1rem', borderTop: '1px solid var(--color-border)', paddingTop: '1rem' }}>
+                        <strong>Verification Documents (Stored Privately):</strong>
+                        <div className="flex gap-md" style={{ marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                          <button onClick={() => viewDoc(guide._id, 'idProof')} className="btn btn-outline btn-sm">🪪 View ID Proof</button>
+                          <button onClick={() => viewDoc(guide._id, 'addressProof')} className="btn btn-outline btn-sm">🏠 View Address Proof</button>
+                          {guide.documents?.certificate && (
+                            <button onClick={() => viewDoc(guide._id, 'certificate')} className="btn btn-outline btn-sm">📜 View Trekking Certificate</button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="booking-item-actions" style={{ marginTop: '1.5rem' }}>
+                        <button onClick={() => openRejectModal(guide._id)} className="btn btn-outline btn-sm" style={{ borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }}>❌ Reject Application</button>
+                        <button onClick={() => handleApproveGuide(guide._id)} className="btn btn-primary btn-sm">✅ Approve Guide</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Tab Content: PAYOUTS */}
+          {tab === 'payouts' && (
+            <div className="payouts-tab animate-fade-in">
+              <h3>Guide UPI Payout Requests</h3>
+              <p className="text-muted" style={{ marginBottom: '1.5rem' }}>Manually transfer funds to the guide's UPI ID, then record reference numbers to confirm.</p>
+              
+              {payouts.length === 0 ? (
+                <p className="text-muted" style={{ padding: '2rem 0' }}>No payout requests found.</p>
+              ) : (
+                <div className="bookings-list">
+                  {payouts.map(p => (
+                    <div className="booking-item card" key={p._id}>
+                      <div className="booking-item-header">
+                        <div>
+                          <h4>Request ID: ...{p._id.slice(-6)}</h4>
+                          <p className="text-muted text-sm">Requested: {new Date(p.requestedAt).toLocaleDateString()}</p>
+                        </div>
+                        <div className="flex gap-sm" style={{ alignItems: 'center' }}>
+                          <span className={`status-dot status-${p.status}`}></span>
+                          <span className="text-sm" style={{ textTransform: 'capitalize' }}>{p.status.replace('_', ' ')}</span>
+                        </div>
+                      </div>
+
+                      <div className="booking-item-details">
+                        <div><strong>Guide Name:</strong> {p.guideProfile?.displayName || 'Guide'}</div>
+                        <div><strong>Amount Due:</strong> <strong className="text-accent" style={{ fontSize: '1.2rem' }}>₹{p.amount}</strong></div>
+                        <div><strong>Commission Collected:</strong> ₹{p.platformCommissionAmount}</div>
+                        <div><strong>UPI ID:</strong> <code style={{ fontSize: '1.05rem', color: 'var(--color-primary-light)', background: 'var(--color-stone)', padding: '0.2rem 0.5rem', borderRadius: 'var(--radius-sm)' }}>{p.temporaryUpiId || p.upiMasked || 'N/A'}</code></div>
+                        <div><strong>Account Holder Name:</strong> {p.upiAccountName}</div>
+                        {p.adminTransactionRef && (
+                          <div><strong>Transaction Ref:</strong> {p.adminTransactionRef}</div>
+                        )}
+                      </div>
+
+                      {p.adminNote && (
+                        <div style={{ padding: '0.5rem', background: 'var(--color-stone)', borderRadius: 'var(--radius-sm)', fontStyle: 'italic', fontSize: '0.9rem' }}>
+                          <strong>Admin Note:</strong> {p.adminNote}
+                        </div>
+                      )}
+
+                      {p.status === 'requested' && (
+                        <div className="booking-item-actions">
+                           <button onClick={() => handleRejectPayout(p._id)} className="btn btn-outline btn-sm">❌ Reject Request</button>
+                           <button onClick={() => handleHoldPayout(p._id)} className="btn btn-ghost btn-sm">⏳ Put on Hold</button>
+                           <button onClick={() => openPayoutModal(p)} className="btn btn-accent btn-sm">💸 Mark as Paid</button>
+                        </div>
+                      )}
+                      {p.status === 'on_hold' && (
+                        <div className="booking-item-actions">
+                           <button onClick={() => handleRejectPayout(p._id)} className="btn btn-outline btn-sm">❌ Reject Request</button>
+                           <button onClick={() => openPayoutModal(p)} className="btn btn-accent btn-sm">💸 Mark as Paid</button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Tab Content: BOOKINGS */}
+          {tab === 'bookings' && (
+            <div className="bookings-tab animate-fade-in">
+              <h3>All Marketplace Bookings</h3>
+              <p className="text-muted" style={{ marginBottom: '1.5rem' }}>Historical list of guide booking transactions.</p>
+              
+              {bookings.length === 0 ? (
+                <p className="text-muted" style={{ padding: '2rem 0' }}>No bookings found.</p>
+              ) : (
+                <table className="admin-list-table">
+                  <thead>
+                    <tr>
+                      <th>Booking ID</th>
+                      <th>Guide</th>
+                      <th>Tourist</th>
+                      <th>Dates</th>
+                      <th>Total</th>
+                      <th>Status</th>
+                      <th>Payment</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bookings.map(b => (
+                      <tr key={b._id}>
+                        <td><Link to={`/booking/${b._id}`}>...{b._id.slice(-6)}</Link></td>
+                        <td>{b.guideProfile?.displayName || 'Guide'}</td>
+                        <td>{b.tourist?.name || 'Tourist'}</td>
+                        <td>{new Date(b.startDate).toLocaleDateString()}</td>
+                        <td>₹{b.totalPrice}</td>
+                        <td>
+                          <div className="flex gap-sm" style={{ alignItems: 'center' }}>
+                            <span className={`status-dot status-${b.status}`}></span>
+                            <span style={{ textTransform: 'capitalize', fontSize: '0.85rem' }}>{b.status.replace('_', ' ')}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <span style={{ textTransform: 'capitalize', fontSize: '0.85rem', fontWeight: 600 }}>{b.paymentStatus}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
+
+          {/* Tab Content: PLACES (CRUD ENABLED) */}
+          {tab === 'places' && (
+            <div className="places-tab animate-fade-in">
+              <div className="flex flex-between" style={{ marginBottom: '1.5rem' }}>
+                <div>
+                  <h3>Monitored Places</h3>
+                  <p className="text-muted">Places, treks, and locations active for bookings.</p>
+                </div>
+                <button onClick={openAddPlaceModal} className="btn btn-accent btn-sm">➕ Add New Place</button>
+              </div>
+
+              {places.length === 0 ? (
+                <p className="text-muted">No places active.</p>
+              ) : (
+                <table className="admin-list-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Category</th>
+                      <th>Location</th>
+                      <th>Difficulty</th>
+                      <th>Est. Duration</th>
+                      <th>Entry Fee</th>
+                      <th style={{ textAlign: 'center' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {places.map(p => (
+                      <tr key={p._id}>
+                        <td><strong>{p.name}</strong></td>
+                        <td style={{ textTransform: 'capitalize' }}>{p.category}</td>
+                        <td>{p.city}, {p.district}</td>
+                        <td style={{ textTransform: 'capitalize' }}>{p.difficultyLevel}</td>
+                        <td>{p.estimatedDuration || 'N/A'}</td>
+                        <td>₹{p.entryFee}</td>
+                        <td style={{ textAlign: 'center' }}>
+                          <button onClick={() => openEditPlaceModal(p)} className="btn btn-ghost btn-sm" style={{ padding: '0.2rem 0.5rem', color: 'var(--color-primary-light)' }}>✏️ Edit</button>
+                          <button onClick={() => handleDeletePlace(p._id)} className="btn btn-ghost btn-sm" style={{ padding: '0.2rem 0.5rem', color: 'var(--color-danger)' }}>🗑️ Delete</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Guide Rejection Modal */}
+      {showRejectModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(5px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+        }}>
+          <div className="card-glass" style={{
+            background: 'var(--color-surface)', padding: '2rem',
+            borderRadius: 'var(--radius-lg)', maxWidth: '480px', width: '90%'
+          }}>
+            <h3>Reject Guide Application</h3>
+            <p className="text-muted text-sm" style={{ marginBottom: '1.5rem' }}>Please specify a feedback reason. The guide will receive this in an email and on their dashboard so they can correct their documents.</p>
+
+            <form onSubmit={handleRejectGuideSubmit}>
+              <div className="form-group">
+                <label className="form-label">Rejection / Correction Feedback</label>
+                <textarea
+                  placeholder="e.g. ID proof is blurred and unreadable. Please upload a clear photo of your Aadhaar card."
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  className="form-textarea"
+                  required
+                />
+              </div>
+
+              <div className="flex" style={{ justifyContent: 'flex-end', gap: '1rem' }}>
+                <button type="button" onClick={() => setShowRejectModal(false)} className="btn btn-ghost btn-sm" disabled={rejectSubmitting}>Cancel</button>
+                <button type="submit" className="btn btn-outline btn-sm" style={{ borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }} disabled={rejectSubmitting}>
+                  {rejectSubmitting ? 'Rejecting...' : 'Confirm Reject'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Payout Processing Modal */}
+      {showPayoutModal && selectedPayout && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(5px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+        }}>
+          <div className="card-glass" style={{
+            background: 'var(--color-surface)', padding: '2rem',
+            borderRadius: 'var(--radius-lg)', maxWidth: '480px', width: '90%'
+          }}>
+            <h3>Confirm UPI Bank Transfer</h3>
+            <p className="text-muted text-sm" style={{ marginBottom: '1.5rem' }}>
+              Transfer exactly <strong>₹{selectedPayout.amount}</strong> to the UPI ID: <br />
+              <code style={{ fontSize: '1.1rem', color: 'var(--color-accent)', fontWeight: 700 }}>{selectedPayout.temporaryUpiId}</code> ({selectedPayout.upiAccountName})
+            </p>
+
+            <form onSubmit={handleMarkPaidSubmit}>
+              <div className="form-group">
+                <label className="form-label">UPI Reference / Transaction ID No.</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Txn Ref 315487954625"
+                  value={txnRef}
+                  onChange={(e) => setTxnRef(e.target.value)}
+                  className="form-input"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Admin Notes (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Transferred via Paytm Business"
+                  value={adminNote}
+                  onChange={(e) => setAdminNote(e.target.value)}
+                  className="form-input"
+                />
+              </div>
+
+              <div style={{
+                fontSize: '0.75rem', color: 'var(--color-success)',
+                background: 'rgba(45, 138, 78, 0.05)', padding: '0.5rem',
+                borderRadius: 'var(--radius-sm)', marginBottom: '1.5rem'
+              }}>
+                ✅ Confirming this clears the guide's temporary plain UPI ID from our database, saving only a masked UPI ID for guide security.
+              </div>
+
+              <div className="flex" style={{ justifyContent: 'flex-end', gap: '1rem' }}>
+                <button type="button" onClick={() => setShowPayoutModal(false)} className="btn btn-ghost btn-sm" disabled={payoutSubmitting}>Cancel</button>
+                <button type="submit" className="btn btn-primary btn-sm" disabled={payoutSubmitting}>
+                  {payoutSubmitting ? 'Confirming...' : 'Mark as PAID'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Place CRUD Modal (Add/Edit Support with Multipart Cover Image Upload) */}
+      {showPlaceModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(5px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+        }}>
+          <div className="card-glass" style={{
+            background: 'var(--color-surface)', padding: '2rem',
+            borderRadius: 'var(--radius-lg)', maxWidth: '560px', width: '90%',
+            maxHeight: '90vh', overflowY: 'auto'
+          }}>
+            <h3>{editingPlace ? '📝 Edit Monitored Place' : '🏰 Add New Place / Fort'}</h3>
+            <p className="text-muted text-sm" style={{ marginBottom: '1.5rem' }}>Define Maharashtra historical fort or trek service points for guides.</p>
+
+            <form onSubmit={handlePlaceSubmit}>
+              <div className="form-group">
+                <label className="form-label">Place/Fort Name *</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Harishchandragad Fort"
+                  value={placeName}
+                  onChange={(e) => setPlaceName(e.target.value)}
+                  className="form-input"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-2">
+                <div className="form-group">
+                  <label className="form-label">Category *</label>
+                  <select value={placeCategory} onChange={(e) => setPlaceCategory(e.target.value)} className="form-select">
+                    <option value="fort">Fort</option>
+                    <option value="trek">Trek / Valley</option>
+                    <option value="heritage">Heritage Site</option>
+                    <option value="spiritual">Spiritual / Caves</option>
+                    <option value="village">Scenic Village</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Difficulty Level *</label>
+                  <select value={placeDifficulty} onChange={(e) => setPlaceDifficulty(e.target.value)} className="form-select">
+                    <option value="easy">Easy (Beginners)</option>
+                    <option value="moderate">Moderate</option>
+                    <option value="difficult">Difficult</option>
+                    <option value="expert">Expert / Technical</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-3">
+                <div className="form-group">
+                  <label className="form-label">City *</label>
+                  <input type="text" placeholder="e.g. Akole" value={placeCity} onChange={(e) => setPlaceCity(e.target.value)} className="form-input" required />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">District *</label>
+                  <input type="text" placeholder="e.g. Ahmednagar" value={placeDistrict} onChange={(e) => setPlaceDistrict(e.target.value)} className="form-input" required />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">State</label>
+                  <input type="text" value={placeState} onChange={(e) => setPlaceState(e.target.value)} className="form-input" required />
+                </div>
+              </div>
+
+              <div className="grid grid-2">
+                <div className="form-group">
+                  <label className="form-label">Entry Fee (₹ INR)</label>
+                  <input type="number" min={0} value={placeFee} onChange={(e) => setPlaceFee(parseInt(e.target.value) || 0)} className="form-input" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Estimated Duration</label>
+                  <input type="text" placeholder="e.g. 5-7 hours" value={placeDuration} onChange={(e) => setPlaceDuration(e.target.value)} className="form-input" />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">History & Description</label>
+                <textarea
+                  placeholder="Tell guides and tourists about the history, heritage story, and trekking routes of this location..."
+                  value={placeDesc}
+                  onChange={(e) => setPlaceDesc(e.target.value)}
+                  className="form-textarea"
+                  rows={4}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Cover Image File Upload</label>
+                <input type="file" accept="image/*" onChange={(e) => setPlaceImage(e.target.files[0])} className="form-input" />
+                <span className="text-muted text-sm">Upload a gorgeous cover photo of the trek or fort.</span>
+              </div>
+
+              <div className="flex" style={{ justifyContent: 'flex-end', gap: '1rem', marginTop: '2rem' }}>
+                <button type="button" onClick={() => setShowPlaceModal(false)} className="btn btn-ghost btn-sm" disabled={placeSubmitting}>Cancel</button>
+                <button type="submit" className="btn btn-accent btn-sm" disabled={placeSubmitting}>
+                  {placeSubmitting ? 'Saving...' : '💾 Save Location'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

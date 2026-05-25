@@ -38,11 +38,19 @@ const createSendToken = (user, statusCode, res) => {
 };
 
 exports.signup = catchAsync(async (req, res, next) => {
+  // Only allow tourist or guide role during signup. Admin is created via seed/manual.
+  let role = 'tourist';
+  if (req.body.role === 'guide') {
+    role = 'guide';
+  }
+
   const newUser = await User.create({
     name: req.body.name,
     email: req.body.email,
     password: req.body.password,
-    passwordConfirm: req.body.passwordConfirm
+    passwordConfirm: req.body.passwordConfirm,
+    role,
+    phone: req.body.phone
   });
 
   // Send welcome email

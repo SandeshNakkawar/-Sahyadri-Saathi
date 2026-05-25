@@ -1,6 +1,6 @@
 const express = require('express');
-const adminController = require('./../controllers/adminController');
-const authController = require('./../controllers/authController');
+const adminController = require('../controllers/adminController');
+const authController = require('../controllers/authController');
 
 const router = express.Router();
 
@@ -8,10 +8,12 @@ const router = express.Router();
 router.use(authController.protect);
 router.use(authController.restrictTo('admin'));
 
-router.get('/stats', adminController.getStats);
+router.get('/dashboard', adminController.getStats);
 router.get('/revenue', adminController.getRevenue);
-router.get('/bookings', adminController.getBookingsByStatus);
-router.get('/bookings/recent', adminController.getRecentBookings);
-router.get('/guides', adminController.getGuides);
+router.get('/users', adminController.getAllUsers);
+router.get('/guides', adminController.getAllGuides);
+router.get('/bookings', adminController.getAllBookings);
+router.get('/payouts', adminController.getAllPayouts);
+router.get('/reviews', adminController.getAllReviews);
 
 module.exports = router;

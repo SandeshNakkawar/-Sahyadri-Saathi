@@ -1,7 +1,7 @@
 {
-  "name": "yatrakaro",
+  "name": "sahyadri-saathi",
   "version": "1.0.0",
-  "description": "Learning node, express and mongoDB",
+  "description": "Sahyadri Saathi - Local guide booking marketplace for Maharashtra forts, treks, and heritage experiences",
   "main": "app.js",
   "scripts": {
     "start": "node server.js",
@@ -9,7 +9,8 @@
     "start:prod": "cross-env NODE_ENV=production node server.js",
     "debug": "ndb server.js",
     "watch:js": "parcel watch ./public/js/index.js --out-dir ./public/js --out-file bundle.js",
-    "build:js": "parcel build ./public/js/index.js --out-dir ./public/js --out-file bundle.js"
+    "build:js": "parcel build ./public/js/index.js --out-dir ./public/js --out-file bundle.js",
+    "seed": "node scripts/seed-sahyadri.js"
   },
   "author": "Jonas Schmedtmann",
   "license": "ISC",

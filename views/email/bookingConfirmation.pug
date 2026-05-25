@@ -1,14 +1,17 @@
 extends baseEmail
 
 block content
-  h2 Booking Confirmed! 🎫
+  h2 Guide Booking Confirmed! 🎫
   p Hi #{firstName},
-  p Great news — your booking has been confirmed! Here are your trip details:
+  p Great news — your guide booking has been successfully paid and confirmed! Here are your trip details:
   .highlight
     table.detail-table
       tr
-        td Tour
-        td #{tourName}
+        td Destination
+        td #{placeName || tourName}
+      tr
+        td Verified Guide
+        td #{guideName}
       tr
         td Start Date
         td #{new Date(startDate).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
@@ -16,18 +19,18 @@ block content
         td End Date
         td #{new Date(endDate).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
       tr
-        td Guests
+        td Travelers
         td #{guests}
       tr
         td Total Price
         td ₹#{totalPrice.toLocaleString('en-IN')}
       tr
-        td Payment
-        td ✅ Paid
+        td Payment Status
+        td ✅ Paid & Secured
       tr
         td Booking ID
         td #{bookingId}
-  p Your guide and pickup details will be shared closer to your trip date.
+  p You can now communicate with your guide directly or view the meeting point in your dashboard.
   a.btn(href=url) View My Bookings
   p Have questions? Reply to this email or contact our support team.
-  p — The YatraKaro Team
+  p — The Sahyadri Saathi Team

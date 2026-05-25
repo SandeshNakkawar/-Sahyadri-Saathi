@@ -1,0 +1,29 @@
+extends baseEmail
+
+block content
+  h2 Payout Processed! 💳💸
+  p Hi #{firstName},
+  p Great news! Your payout request has been processed and successfully paid.
+  p Here are the transaction details:
+  .highlight
+    table.detail-table
+      tr
+        td Destination
+        td #{placeName}
+      tr
+        td Date of Trip
+        td #{new Date(tripDate).toLocaleDateString()}
+      tr
+        td Payout Amount
+        td <strong>₹#{amount}</strong>
+      tr
+        td Masked UPI ID
+        td #{upiMasked}
+      tr
+        td Bank Ref / Txn No
+        td <code>#{transactionRef}</code>
+  if adminNote
+    p(style="font-style: italic; color: #666; margin-top: 10px;") <strong>Admin Note:</strong> "#{adminNote}"
+  a.btn(href=url) Go to Guide Workspace
+  p Thank you for guiding with Sahyadri Saathi! We look forward to your next successful trip.
+  p — The Sahyadri Saathi Team

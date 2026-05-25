@@ -1,0 +1,24 @@
+extends baseEmail
+
+block content
+  h2 Booking Request Accepted! 🎉
+  p Hi #{firstName},
+  p Great news! Your guide, <strong>#{guideName}</strong>, has reviewed and accepted your booking request for <strong>#{placeName}</strong>.
+  p To secure your booking, please proceed to make the payment using the link below:
+  .highlight
+    table.detail-table
+      tr
+        td Destination
+        td #{placeName}
+      tr
+        td Guide
+        td #{guideName}
+      tr
+        td Dates
+        td #{new Date(startDate).toLocaleDateString()} to #{new Date(endDate).toLocaleDateString()}
+      tr
+        td Total Price
+        td ₹#{totalPrice}
+  a.btn(href=url) 💳 Pay Now to Confirm Booking
+  p Note: Bookings are pending and can be auto-cancelled if unpaid.
+  p — The Sahyadri Saathi Team

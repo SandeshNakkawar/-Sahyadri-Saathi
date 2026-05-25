@@ -1,0 +1,14 @@
+extends baseEmail
+
+block content
+  h2 Guide Profile Update Required ⚠️
+  p Hi #{firstName},
+  p Thank you for your interest in onboarding as a local guide with Sahyadri Saathi.
+  p Unfortunately, your guide profile verification could not be approved at this time. Our review team has provided the following feedback for required updates:
+  .highlight(style="background: #fff5f5; border-left: 4px solid #c0392b; color: #c0392b;")
+    p <strong>Correction Required:</strong>
+    p #{reason}
+  p Please log in to your Guide Workspace, review your profile data/documents, and resubmit them for verification.
+  a.btn(href=url) ⚙️ Edit & Resubmit Profile
+  p If you have any questions, feel free to reply directly to this email.
+  p — The Sahyadri Saathi Team
