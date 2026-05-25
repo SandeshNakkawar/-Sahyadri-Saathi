@@ -1,0 +1,33 @@
+extends baseEmail
+
+block content
+  h2 Booking Confirmed! 🎫
+  p Hi #{firstName},
+  p Great news — your booking has been confirmed! Here are your trip details:
+  .highlight
+    table.detail-table
+      tr
+        td Tour
+        td #{tourName}
+      tr
+        td Start Date
+        td #{new Date(startDate).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+      tr
+        td End Date
+        td #{new Date(endDate).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+      tr
+        td Guests
+        td #{guests}
+      tr
+        td Total Price
+        td ₹#{totalPrice.toLocaleString('en-IN')}
+      tr
+        td Payment
+        td ✅ Paid
+      tr
+        td Booking ID
+        td #{bookingId}
+  p Your guide and pickup details will be shared closer to your trip date.
+  a.btn(href=url) View My Bookings
+  p Have questions? Reply to this email or contact our support team.
+  p — The YatraKaro Team

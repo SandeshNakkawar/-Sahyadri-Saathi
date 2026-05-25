@@ -1,0 +1,123 @@
+extends base
+
+block content
+  main.main
+    - const statusColors = { pending_payment: '#ff7730', confirmed: '#55c57a', guide_assigned: '#2998ff', ready_for_trip: '#7c3aed', completed: '#28b487', cancelled: '#e74c3c', refunded: '#f39c12' };
+    - const statusColor = statusColors[booking.status] || '#777';
+    - const statusLabel = (booking.status || 'unknown').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+    section.section-header
+      .heading-box
+        h1.heading-primary
+          span Booking Details
+
+    .user-view(style='max-width: 80rem; margin: 4rem auto; padding: 0 2rem;')
+      //- Tour Info Card
+      .booking-card(style='background: #fff; border-radius: 12px; box-shadow: 0 2px 15px rgba(0,0,0,0.08); overflow: hidden; margin-bottom: 3rem;')
+        if booking.tour
+          .booking-card__header(style='position: relative; height: 20rem;')
+            img(src=`/img/tours/${booking.tour.imageCover}` alt=`${booking.tour.name}` style='width: 100%; height: 100%; object-fit: cover;')
+            .booking-card__overlay(style='position: absolute; bottom: 0; left: 0; right: 0; padding: 2rem 3rem; background: linear-gradient(transparent, rgba(0,0,0,0.7));')
+              h2(style='color: #fff; font-size: 2.4rem; margin: 0;')= booking.tour.name
+              span(style=`display: inline-block; padding: 4px 16px; border-radius: 20px; font-size: 1.3rem; font-weight: 600; color: #fff; background: ${statusColor}; margin-top: 0.5rem;`)= statusLabel
+
+        .booking-card__body(style='padding: 3rem;')
+          h3(style='color: #28b487; margin-bottom: 2rem; font-size: 1.8rem;') Trip Details
+          .detail-grid(style='display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;')
+            .detail-item
+              span.detail-label(style='display: block; font-size: 1.2rem; color: #999; text-transform: uppercase; letter-spacing: 1px;') Start Date
+              span.detail-value(style='font-size: 1.5rem; font-weight: 600;')= booking.startDate ? new Date(booking.startDate).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'
+            .detail-item
+              span.detail-label(style='display: block; font-size: 1.2rem; color: #999; text-transform: uppercase; letter-spacing: 1px;') End Date
+              span.detail-value(style='font-size: 1.5rem; font-weight: 600;')= booking.endDate ? new Date(booking.endDate).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'
+            .detail-item
+              span.detail-label(style='display: block; font-size: 1.2rem; color: #999; text-transform: uppercase; letter-spacing: 1px;') Guests
+              span.detail-value(style='font-size: 1.5rem; font-weight: 600;')= booking.guests || 1
+            .detail-item
+              span.detail-label(style='display: block; font-size: 1.2rem; color: #999; text-transform: uppercase; letter-spacing: 1px;') Price per Person
+              span.detail-value(style='font-size: 1.5rem; font-weight: 600;') ₹#{(booking.price || 0).toLocaleString('en-IN')}
+
+          //- Total Price Highlight
+          .total-box(style='margin-top: 2rem; padding: 1.5rem; background: linear-gradient(135deg, #55c57a22, #28b48722); border-radius: 8px; text-align: center;')
+            span(style='font-size: 1.4rem; color: #777;') Total Paid:
+            span(style='font-size: 2.4rem; font-weight: 700; color: #28b487; margin-left: 1rem;') ₹#{(booking.totalPrice || booking.price || 0).toLocaleString('en-IN')}
+
+          //- Payment Status
+          h3(style='color: #28b487; margin: 3rem 0 1.5rem; font-size: 1.8rem;') Payment & Status
+          .detail-grid(style='display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;')
+            .detail-item
+              span.detail-label(style='display: block; font-size: 1.2rem; color: #999; text-transform: uppercase; letter-spacing: 1px;') Payment
+              span.detail-value(style='font-size: 1.5rem; font-weight: 600;')= booking.paid ? '✅ Paid' : '⏳ Pending'
+            .detail-item
+              span.detail-label(style='display: block; font-size: 1.2rem; color: #999; text-transform: uppercase; letter-spacing: 1px;') Booking ID
+              span.detail-value(style='font-size: 1.3rem; font-family: monospace; color: #555;')= booking._id
+
+          //- Guide Info
+          if booking.guide
+            h3(style='color: #28b487; margin: 3rem 0 1.5rem; font-size: 1.8rem;') Your Guide
+            .guide-info(style='display: flex; align-items: center; gap: 1.5rem; padding: 1.5rem; background: #f8f9fa; border-radius: 8px;')
+              img(src=`/img/users/${booking.guide.photo || 'default.jpg'}` alt=`${booking.guide.name}` style='width: 6rem; height: 6rem; border-radius: 50%; object-fit: cover;')
+              div
+                span(style='font-size: 1.6rem; font-weight: 600; display: block;')= booking.guide.name
+                span(style='font-size: 1.3rem; color: #777;')= booking.guide.email
+          else
+            .guide-pending(style='margin-top: 2rem; padding: 1.5rem; background: #fff3cd; border-radius: 8px; text-align: center;')
+              p(style='color: #856404; font-size: 1.4rem; margin: 0;') 🧭 Guide assignment pending — you'll be notified once a guide is assigned.
+
+          //- Pickup & Instructions
+          if booking.pickupLocation || booking.tripInstructions
+            h3(style='color: #28b487; margin: 3rem 0 1.5rem; font-size: 1.8rem;') Trip Details
+            if booking.pickupLocation
+              .detail-item(style='margin-bottom: 1rem;')
+                span.detail-label(style='display: block; font-size: 1.2rem; color: #999; text-transform: uppercase; letter-spacing: 1px;') Pickup Location
+                span.detail-value(style='font-size: 1.5rem;')= booking.pickupLocation
+            if booking.tripInstructions
+              .detail-item
+                span.detail-label(style='display: block; font-size: 1.2rem; color: #999; text-transform: uppercase; letter-spacing: 1px;') Instructions
+                p(style='font-size: 1.4rem; line-height: 1.6; color: #555;')= booking.tripInstructions
+
+          //- Cancellation Info
+          if booking.status === 'cancelled'
+            .cancel-info(style='margin-top: 2rem; padding: 1.5rem; background: #fde8e8; border-radius: 8px;')
+              h4(style='color: #e74c3c; margin-bottom: 0.5rem;') Booking Cancelled
+              if booking.cancellationReason
+                p(style='color: #555; font-size: 1.3rem;')= booking.cancellationReason
+
+          //- Actions
+          .booking-actions(style='margin-top: 3rem; display: flex; gap: 1rem; flex-wrap: wrap;')
+            a.btn.btn--green(href='/my-bookings') ← Back to Bookings
+            if booking.tour && booking.tour.slug
+              a.btn.btn--white(href=`/tour/${booking.tour.slug}`) View Tour
+            if booking.status !== 'cancelled' && booking.status !== 'refunded' && booking.status !== 'completed'
+              button.btn.btn--white#cancel-btn(data-booking-id=`${booking._id}` style='color: #e74c3c; border-color: #e74c3c;') Cancel Booking
+
+  //- Cancel handler
+  script.
+    const cancelBtn = document.getElementById('cancel-btn');
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', async function() {
+        if (!confirm('Are you sure you want to cancel this booking?')) return;
+        const reason = prompt('Reason for cancellation (optional):');
+        if (reason === null) return;
+
+        this.textContent = 'Cancelling...';
+        this.disabled = true;
+
+        try {
+          const res = await fetch(`/api/v1/bookings/${this.dataset.bookingId}/cancel`, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reason })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || 'Cancellation failed');
+          showAlert('success', 'Booking cancelled successfully');
+          window.location.reload();
+        } catch(err) {
+          showAlert('error', `Error: ${err.message}`);
+          this.textContent = 'Cancel Booking';
+          this.disabled = false;
+        }
+      });
+    }

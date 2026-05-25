@@ -1,0 +1,28 @@
+extends baseEmail
+
+block content
+  h2 Your Trip is Coming Up! ⏰
+  p Hi #{firstName},
+  p Just a reminder — your #{tourName} trip is right around the corner!
+  .highlight
+    table.detail-table
+      tr
+        td Tour
+        td #{tourName}
+      tr
+        td Starts
+        td #{new Date(startDate).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+      if guideName
+        tr
+          td Guide
+          td #{guideName}
+      if pickupLocation
+        tr
+          td Pickup
+          td #{pickupLocation}
+  if tripInstructions
+    h3 Trip Instructions
+    p #{tripInstructions}
+  p Make sure to pack your essentials and get ready for an amazing experience!
+  a.btn(href=url) View Booking Details
+  p — The YatraKaro Team

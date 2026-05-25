@@ -1,0 +1,200 @@
+extends base
+
+block content
+  //- ═══════════════════ VIDEO HERO ═══════════════════
+  section.video-hero#hero
+    //- Full-screen video background
+    video.video-hero__video(autoplay muted loop playsinline preload='auto' poster='/img/tours/tour-1-cover.jpg')
+      source(src='https://cdn.coverr.co/videos/coverr-aerial-view-of-a-mountain-9067/1080p.mp4' type='video/mp4')
+    //- Canvas for 3D particles — sits above video, behind text
+    canvas.video-hero__canvas#heroCanvas
+    //- Centered content
+    .video-hero__content
+      .video-hero__pill ✦ Premium Indian Adventures
+      h1.video-hero__headline
+        span.video-hero__line Discover
+        span.video-hero__line Incredible
+        span.video-hero__line.video-hero__line--accent India
+      p.video-hero__sub Handcrafted travel experiences with expert guides, small groups, and memories that last a lifetime.
+      .video-hero__ctas
+        a.video-hero__btn.video-hero__btn--solid(href='/tours') Explore Tours
+        a.video-hero__btn.video-hero__btn--outline(href='#how-it-works') How It Works
+    //- Scroll indicator
+    .video-hero__scroll
+      span.video-hero__scroll-text Scroll
+      .video-hero__scroll-bar
+
+  // How It Works — Horizontal Pinned Scroll
+  section.hiw#how-it-works
+    .hiw__header
+      h2.hiw__title How It Works
+      p.hiw__subtitle Three simple steps to your dream adventure
+    .hiw__track
+      .hiw__step
+        .hiw__step-num 01
+        .hiw__step-icon 🔍
+        h3.hiw__step-title Choose Your Tour
+        p.hiw__step-text Browse our curated collection of hand-picked adventures across India
+      .hiw__step
+        .hiw__step-num 02
+        .hiw__step-icon 📅
+        h3.hiw__step-title Pick a Date
+        p.hiw__step-text Select from multiple departure dates & customize your group
+      .hiw__step
+        .hiw__step-num 03
+        .hiw__step-icon 🎒
+        h3.hiw__step-title Start Exploring
+        p.hiw__step-text Pack your bags and let our expert guides lead the way
+
+  // Features Section
+  section.feat#features
+    .container
+      .feat__header
+        h2.feat__title Why Choose YatraKaro?
+        p.feat__sub Experience India's most incredible adventures with our premium tour services
+      .feat__grid
+        .feat__card(data-tilt)
+          .feat__card-glow
+          .feat__card-inner
+            .feat__card-icon
+              svg: use(xlink:href='/img/icons.svg#icon-globe')
+            h3 Expert Guides
+            p Professional local guides with deep knowledge of Indian destinations and cultures
+        .feat__card(data-tilt)
+          .feat__card-glow
+          .feat__card-inner
+            .feat__card-icon
+              svg: use(xlink:href='/img/icons.svg#icon-shield')
+            h3 Safe & Secure
+            p Your safety is our priority with comprehensive insurance and 24/7 support
+        .feat__card(data-tilt)
+          .feat__card-glow
+          .feat__card-inner
+            .feat__card-icon
+              svg: use(xlink:href='/img/icons.svg#icon-heart')
+            h3 Small Groups
+            p Intimate group sizes for personalized experiences and meaningful connections
+        .feat__card(data-tilt)
+          .feat__card-glow
+          .feat__card-inner
+            .feat__card-icon
+              svg: use(xlink:href='/img/icons.svg#icon-star')
+            h3 Premium Quality
+            p Handpicked accommodations, transportation, and activities for the best experience
+
+  // Statistics Section
+  section.stats-v2
+    .container
+      .stats-v2__grid
+        .stats-v2__item
+          .stats-v2__number(data-target='1000') 0
+          .stats-v2__label Happy Travelers
+        .stats-v2__item
+          .stats-v2__number(data-target='50') 0
+          .stats-v2__label Destinations
+        .stats-v2__item
+          .stats-v2__number(data-target='15') 0
+          .stats-v2__label Years Experience
+        .stats-v2__item
+          .stats-v2__number(data-target='98') 0
+          .stats-v2__label Satisfaction Rate
+
+  // Tours Section
+  section.tours-v2#tours
+    .container
+      .tours-v2__header
+        h2.tours-v2__title Featured Adventures
+        p.tours-v2__sub Discover our most popular tours and start planning your next adventure
+      .tours-v2__grid
+        each tour, index in tours
+          .tours-v2__card(data-index=index)
+            .tours-v2__card-img
+              img(src=`/img/tours/${tour.imageCover}`, alt=`${tour.name}`)
+              .tours-v2__card-overlay
+              .tours-v2__card-badges
+                span.tours-v2__badge= tour.difficulty
+                .tours-v2__rating
+                  svg: use(xlink:href='/img/icons.svg#icon-star')
+                  span= tour.ratingsAverage
+            .tours-v2__card-body
+              h3.tours-v2__card-title= tour.name
+              p.tours-v2__card-desc= tour.summary
+              .tours-v2__card-meta
+                .tours-v2__card-meta-item
+                  svg: use(xlink:href='/img/icons.svg#icon-map-pin')
+                  span= tour.startLocation.description
+                .tours-v2__card-meta-item
+                  svg: use(xlink:href='/img/icons.svg#icon-calendar')
+                  if tour.startDates && tour.startDates.length
+                    - const dateVal = tour.startDates[0].date || tour.startDates[0];
+                    span= new Date(dateVal).toLocaleString('en-us', { month: 'long', year: 'numeric' })
+                  else
+                    span Not available
+                .tours-v2__card-meta-item
+                  svg: use(xlink:href='/img/icons.svg#icon-user')
+                  span= `${tour.maxGroupSize} people`
+              .tours-v2__card-foot
+                .tours-v2__card-price
+                  span.tours-v2__card-price-val= `₹${tour.price.toLocaleString('en-IN')}`
+                  span.tours-v2__card-price-lbl per person
+                a.hero-v2__btn.hero-v2__btn--primary.hero-v2__btn--sm(href=`/tour/${tour.slug}`) View Details
+
+  // Testimonials Section
+  section.testi#testimonials
+    .container
+      .testi__header
+        h2.testi__title What Our Travelers Say
+        p.testi__sub Real stories from adventurers who've explored India with us
+      .testi__carousel
+        .testi__slide.active
+          .testi__card
+            .testi__text "YatraKaro made our dream trip to Ladakh absolutely perfect. The guides were knowledgeable, the group was amazing, and every detail was taken care of. We can't wait to book our next adventure!"
+            .testi__author
+              .testi__avatar PS
+              .testi__info
+                h4 Priya Sharma
+                p Mumbai, India
+        .testi__slide
+          .testi__card
+            .testi__text "The cultural immersion and local experiences in Rajasthan were incredible. We felt like we truly got to know the places we visited, not just saw them. Highly recommended!"
+            .testi__author
+              .testi__avatar AP
+              .testi__info
+                h4 Arjun Patel
+                p Ahmedabad, India
+        .testi__slide
+          .testi__card
+            .testi__text "From booking to the end of our Kerala trip, everything was seamless. The small group size made it feel personal and the backwaters were breathtaking. Worth every penny!"
+            .testi__author
+              .testi__avatar SI
+              .testi__info
+                h4 Sneha Iyer
+                p Chennai, India
+      .testi__controls
+        button.testi__btn.testi__btn--prev
+          svg: use(xlink:href='/img/icons.svg#icon-arrow-left')
+        .testi__dots
+        button.testi__btn.testi__btn--next
+          svg: use(xlink:href='/img/icons.svg#icon-arrow-right')
+
+  // CTA Section
+  section.cta-v2
+    .cta-v2__bg
+    .container
+      .cta-v2__content
+        h2.cta-v2__title Ready for Your Next Adventure?
+        p.cta-v2__sub Join thousands of travelers who've explored India with YatraKaro
+        .cta-v2__actions
+          a.hero-v2__btn.hero-v2__btn--primary.hero-v2__btn--lg(href='/signup') Start Your Journey
+          a.hero-v2__btn.hero-v2__btn--ghost.hero-v2__btn--lg(href='/contact') Get in Touch
+
+  // Newsletter Section
+  section.nl
+    .container
+      .nl__inner
+        .nl__text
+          h2.nl__title Stay Updated
+          p.nl__sub Get the latest travel tips, exclusive offers, and new destinations delivered to your inbox
+        form.nl__form
+          input.nl__input(type='email', placeholder='Enter your email address', required)
+          button.nl__btn(type='submit') Subscribe

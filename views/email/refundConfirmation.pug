@@ -1,0 +1,23 @@
+extends baseEmail
+
+block content
+  h2 Refund Processed 💰
+  p Hi #{firstName},
+  p Your refund for the #{tourName} booking has been processed successfully.
+  .highlight
+    table.detail-table
+      tr
+        td Tour
+        td #{tourName}
+      tr
+        td Original Date
+        td #{new Date(startDate).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+      tr
+        td Refund Amount
+        td ₹#{totalPrice.toLocaleString('en-IN')}
+      tr
+        td Status
+        td ✅ Refunded
+  p The refund should appear in your account within 5-10 business days, depending on your payment provider.
+  a.btn(href=url) View My Bookings
+  p — The YatraKaro Team

@@ -1,0 +1,60 @@
+extends ../base
+
+block content
+  main.main
+    .yk-container
+      .yk-header
+        h1.yk-title Manage Bookings
+        p.yk-subtitle Total #{bookings.length} booking#{bookings.length === 1 ? '' : 's'} registered in the system
+
+      //- Status Filter Tabs (Unified Tabs)
+      - const statuses = ['all', 'pending_payment', 'confirmed', 'guide_assigned', 'ready_for_trip', 'completed', 'cancelled', 'refunded'];
+      .yk-tabs
+        each s in statuses
+          - const isActive = currentStatus === s;
+          - const label = s === 'all' ? 'All Bookings' : s.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+          a(href=`/admin/bookings${s === 'all' ? '' : '?status=' + s}` class=`yk-tab ${isActive ? 'yk-tab--active' : ''}`)
+            if s !== 'all'
+              span(class=`yk-badge yk-badge--${s}` style='padding: 0px 8px; font-size: 1.1rem; border: none; font-weight: 700; margin-right: 0.5rem;')= label
+            else
+              span= label
+
+      //- Bookings Table (Unified Table wrapper)
+      if bookings.length
+        .yk-table-wrapper
+          table.yk-table
+            thead
+              tr
+                th Tour
+                th Customer
+                th Date
+                th Guests
+                th Total Price
+                th Status
+                th Action
+            tbody
+              each b in bookings
+                - const sl = (b.status || '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                tr
+                  td(style='font-weight: 600; color: #0f172a;')= b.tour ? b.tour.name : 'N/A'
+                  td
+                    if b.user
+                      span(style='display: block; font-weight: 500;')= b.user.name
+                      span(style='display: block; font-size: 1.1rem; color: #64748b;')= b.user.email
+                    else
+                      | N/A
+                  td= b.startDate ? new Date(b.startDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'
+                  td(style='text-align: center;')= b.guests || 1
+                  td(style='font-weight: 700; color: #0f172a;') ₹#{(b.totalPrice || 0).toLocaleString('en-IN')}
+                  td
+                    span(class=`yk-badge yk-badge--${b.status}`)= sl
+                  td
+                    a(href=`/admin/bookings/${b._id}` style='color: #28b487; font-weight: 700; text-decoration: none;') Manage →
+      else
+        .yk-card(style='max-width: 60rem; margin: 4rem auto; padding: 5rem 3rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 2rem;')
+          div(style='background: rgba(243,156,18,0.1); padding: 2rem; border-radius: 50%;')
+            svg(style='width: 6rem; height: 6rem; fill: #f39c12;')
+              use(xlink:href='/img/icons.svg#icon-credit-card')
+          h2(style='font-size: 2.2rem; font-weight: 700; color: #1e293b; margin: 0;') No Bookings Found
+          p(style='font-size: 1.5rem; color: #64748b; margin: 0;') There are no bookings in the system matching this status criteria.
+          a.btn.btn--green(href='/admin/bookings' style='margin-top: 1rem;') View All Bookings

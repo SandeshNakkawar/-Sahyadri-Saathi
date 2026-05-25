@@ -1,0 +1,14 @@
+extends baseEmail
+
+block content
+  h2 How was your trip? ⭐
+  p Hi #{firstName},
+  p We hope you had an amazing time on your #{tourName} adventure!
+  p We'd love to hear about your experience. Your review helps other travelers discover great tours and helps us keep improving.
+  .highlight
+    p 🌟 Share your highlights and memories
+    p 📸 Tell future travelers what to expect
+    p ⭐ Rate the experience from 1 to 5 stars
+  a.btn(href=url) Write a Review
+  p Thank you for traveling with YatraKaro. We can't wait to see you on your next adventure!
+  p — The YatraKaro Team

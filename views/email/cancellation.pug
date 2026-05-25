@@ -1,0 +1,22 @@
+extends baseEmail
+
+block content
+  h2 Booking Cancelled
+  p Hi #{firstName},
+  p Your booking for #{tourName} has been cancelled.
+  .highlight
+    table.detail-table
+      tr
+        td Tour
+        td #{tourName}
+      tr
+        td Original Date
+        td #{new Date(startDate).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+      if reason
+        tr
+          td Reason
+          td #{reason}
+  p If you paid for this booking, a refund will be processed. You'll receive a separate confirmation once the refund is complete.
+  p Want to book again? Browse our available tours below.
+  a.btn(href=url) Browse Tours
+  p — The YatraKaro Team

@@ -1,0 +1,152 @@
+extends base
+
+block content
+  main.main
+    section.section-header
+      .heading-box
+        h1.heading-primary
+          span Billing
+        p.heading-box__text Manage your payments and invoices
+
+    section.section-billing.bill
+      .container
+        // Payment Methods Section
+        .bill__section
+          h2.bill__section-title Payment Methods
+          .card-container
+            .card.bill__card
+              .card__header
+                .bill__card-icon
+                  svg
+                    use(xlink:href='/img/icons.svg#icon-credit-card')
+                h3.heading-tertirary
+                  span Stripe Customer Portal
+              .card__details
+                p.bill__description Manage your payment methods, view billing history, and update subscription details securely through Stripe.
+                .bill__features
+                  .bill__feature
+                    svg.bill__feature-icon
+                      use(xlink:href='/img/icons.svg#icon-check')
+                    span Add/remove payment methods
+                  .bill__feature
+                    svg.bill__feature-icon
+                      use(xlink:href='/img/icons.svg#icon-check')
+                    span View billing history
+                  .bill__feature
+                    svg.bill__feature-icon
+                      use(xlink:href='/img/icons.svg#icon-check')
+                    span Download invoices
+              .card__cta
+                a.btn.btn--green(href='/api/v1/bookings/billing-portal') Open Customer Portal
+                span.bill__secure
+                  svg
+                    use(xlink:href='/img/icons.svg#icon-shield')
+                  | Secure & Encrypted
+
+        // Recent Transactions Section
+        .bill__section
+          h2.bill__section-title Recent Transactions
+          if bookings && bookings.length
+            .card-container
+              each booking, index in bookings.slice(0, 3)
+                .card.bill__transaction-card
+                  .card__header
+                    img.card__picture(role='presentation', src=`/img/tours/${booking.tour.imageCover}`, alt=`${booking.tour.name}`)
+                    h3.heading-tertirary
+                      span= booking.tour.name
+                  .card__details
+                    .bill__transaction-details
+                      .bill__transaction-item
+                        svg.bill__icon
+                          use(xlink:href='/img/icons.svg#icon-calendar')
+                        span
+                          strong Date:
+                          |  #{new Date(booking.createdAt).toLocaleDateString('en-us', { year: 'numeric', month: 'short', day: '2-digit' })}
+                      .bill__transaction-item
+                        svg.bill__icon
+                          use(xlink:href='/img/icons.svg#icon-credit-card')
+                        span
+                          strong Amount:
+                          |  ₹#{(booking.price || booking.tour.price).toLocaleString('en-IN')}
+                      .bill__transaction-item
+                        svg.bill__icon
+                          use(xlink:href='/img/icons.svg#icon-check')
+                        span
+                          strong Status:
+                          |  #{booking.paid ? 'Paid' : 'Unpaid'}
+                  .card__cta
+                    a.btn.btn--green(href=`/tour/${booking.tour.slug}`) View Tour
+                    .bill__status.bill__status--success
+                      svg
+                        use(xlink:href='/img/icons.svg#icon-check')
+                      | Completed
+          else
+            .bill__empty
+              .bill__empty-icon
+                svg
+                  use(xlink:href='/img/icons.svg#icon-credit-card')
+              h3.bill__empty-title No transactions yet
+              p.bill__empty-text Your recent bookings and payments will appear here.
+
+        // Billing Information Section
+        .bill__section
+          h2.bill__section-title Billing Information
+          .card-container
+            .card.bill__info-card
+              .card__header
+                .bill__card-icon
+                  svg
+                    use(xlink:href='/img/icons.svg#icon-user')
+                h3.heading-tertirary
+                  span Account Details
+              .card__details
+                .bill__info-grid
+                  .bill__info-item
+                    svg.bill__icon
+                      use(xlink:href='/img/icons.svg#icon-mail')
+                    span
+                      strong Email:
+                      |  #{user.email}
+                  .bill__info-item
+                    svg.bill__icon
+                      use(xlink:href='/img/icons.svg#icon-user')
+                    span
+                      strong Name:
+                      |  #{user.name}
+                  .bill__info-item
+                    svg.bill__icon
+                      use(xlink:href='/img/icons.svg#icon-calendar')
+                    span
+                      strong Member since:
+                      |  #{new Date(user.createdAt).toLocaleDateString('en-us', { year: 'numeric', month: 'long' })}
+              .card__cta
+                a.btn.btn--white(href='/me') Update Profile
+                a.btn.btn--green(href='/api/v1/bookings/billing-portal') Manage Billing
+
+        // Support Section
+        .bill__section
+          h2.bill__section-title Need Help?
+          .card-container
+            .card.bill__support-card
+              .card__header
+                .bill__card-icon
+                  svg
+                    use(xlink:href='/img/icons.svg#icon-help')
+                h3.heading-tertirary
+                  span Billing Support
+              .card__details
+                p.bill__description Having trouble with payments or need to dispute a charge? Our support team is here to help.
+                .bill__support-methods
+                  .bill__support-method
+                    svg.bill__icon
+                      use(xlink:href='/img/icons.svg#icon-mail')
+                    span Email: support@yatrakaro.com
+                  .bill__support-method
+                    svg.bill__icon
+                      use(xlink:href='/img/icons.svg#icon-clock')
+                    span Response time: 24 hours
+              .card__cta
+                a.btn.btn--green(href='/contact') Contact Support
+                a.btn.btn--white(href='/about') Learn More
+
+

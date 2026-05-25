@@ -1,0 +1,74 @@
+extends ../base
+
+block content
+  - const statusColors = { pending_payment: '#ff7730', confirmed: '#55c57a', guide_assigned: '#2998ff', ready_for_trip: '#7c3aed', completed: '#28b487', cancelled: '#e74c3c', refunded: '#f39c12' };
+  main.main
+    .yk-container
+      .yk-header
+        h1.yk-title Admin Dashboard
+        p.yk-subtitle Global booking statistics, revenue performance, and administrative oversight
+
+      //- KPI Cards (Unified Grid)
+      .yk-kpi-grid
+        .yk-kpi-card.yk-kpi-card--green
+          p.yk-kpi-card__label Total Bookings
+          h2.yk-kpi-card__value= stats.totalBookings
+        .yk-kpi-card.yk-kpi-card--purple
+          p.yk-kpi-card__label Total Revenue
+          h2.yk-kpi-card__value ₹#{stats.totalRevenue.toLocaleString('en-IN')}
+        .yk-kpi-card.yk-kpi-card--blue
+          p.yk-kpi-card__label Active Users
+          h2.yk-kpi-card__value= stats.totalUsers
+        .yk-kpi-card.yk-kpi-card--orange
+          p.yk-kpi-card__label Total Tours
+          h2.yk-kpi-card__value= stats.totalTours
+
+      //- Booking Status Overview
+      if bookingsByStatus && bookingsByStatus.length
+        .yk-table-wrapper(style='padding: 2.4rem; margin-bottom: 4rem;')
+          h3(style='color: #1e293b; font-family: var(--yk-font-heading); font-size: 1.8rem; font-weight: 700; margin-bottom: 2rem;') Bookings by Status
+          .yk-tabs
+            each s in bookingsByStatus
+              - const label = (s._id || 'unknown').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+              a(href=`/admin/bookings?status=${s._id}` class=`yk-tab` style='display: flex; align-items: center; gap: 0.8rem;')
+                span(class=`yk-badge yk-badge--${s._id}` style='padding: 0.2rem 0.8rem; font-size: 1.1rem;')= label
+                span(style='background: #e2e8f0; color: #1e293b; padding: 2px 8px; border-radius: 12px; font-size: 1.1rem; font-weight: 700;')= s.count
+
+      //- Quick Actions
+      .yk-header(style='margin-bottom: 2rem;')
+        h3(style='color: #1e293b; font-family: var(--yk-font-heading); font-size: 1.8rem; font-weight: 700; margin-bottom: 1.5rem;') Quick Management Actions
+      .yk-tabs(style='margin-bottom: 4rem;')
+        a.btn.btn--green(href='/admin/bookings' style='font-size: 1.2rem; padding: 1.2rem 2.4rem;') Manage All Bookings
+        a.btn.btn--white(href='/admin/bookings?status=confirmed' style='font-size: 1.2rem; padding: 1.2rem 2.4rem;') New Confirmed
+        a.btn.btn--white(href='/admin/bookings?status=pending_payment' style='font-size: 1.2rem; padding: 1.2rem 2.4rem;') Pending Payment
+
+      //- Recent Bookings (Unified Table Wrapper)
+      .yk-table-wrapper
+        div(style='padding: 2.4rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;')
+          h3(style='color: #1e293b; font-family: var(--yk-font-heading); font-size: 1.8rem; font-weight: 700; margin: 0;') Recent Bookings
+        if recentBookings && recentBookings.length
+          table.yk-table
+            thead
+              tr
+                th Tour
+                th User
+                th Date
+                th Guests
+                th Total
+                th Status
+                th Action
+            tbody
+              each b in recentBookings
+                - const sl = (b.status || '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                tr
+                  td(style='font-weight: 600; color: #0f172a;')= b.tour ? b.tour.name : 'N/A'
+                  td= b.user ? b.user.name : 'N/A'
+                  td= b.startDate ? new Date(b.startDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }) : 'N/A'
+                  td= b.guests || 1
+                  td(style='font-weight: 700; color: #0f172a;') ₹#{(b.totalPrice || 0).toLocaleString('en-IN')}
+                  td
+                    span(class=`yk-badge yk-badge--${b.status}`)= sl
+                  td
+                    a(href=`/admin/bookings/${b._id}` style='color: #28b487; font-weight: 700; text-decoration: none;') Manage →
+        else
+          div(style='padding: 5rem; text-align: center; color: #64748b;') No bookings yet in the system.

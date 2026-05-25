@@ -1,0 +1,96 @@
+extends base
+
+block content
+  // Hero Section
+  section.contact-hero
+    .contact-hero__content
+      h1.contact-hero__title Get in touch with our team.<br>We're here to help you explore the world.
+    .contact-hero__banner
+      p.contact-hero__banner-text Ready to start your next adventure? Our travel experts are standing by to help you plan the perfect tour experience.
+
+  main.main
+    // Contact Methods Section
+    section.contact-methods
+      .container
+        .contact-methods__grid
+          .contact-methods__item
+            .contact-methods__icon
+              svg
+                use(xlink:href='/img/icons.svg#icon-phone')
+            h3.contact-methods__title Call us
+            p.contact-methods__description +1 (555) 123-4567
+            p.contact-methods__subtext Mon-Fri 9AM-6PM EST
+          .contact-methods__item
+            .contact-methods__icon
+              svg
+                use(xlink:href='/img/icons.svg#icon-mail')
+            h3.contact-methods__title Email us
+            p.contact-methods__description support@yatrakaro.com
+            p.contact-methods__subtext We respond within 24 hours
+          .contact-methods__item
+            .contact-methods__icon
+              svg
+                use(xlink:href='/img/icons.svg#icon-map-pin')
+            h3.contact-methods__title Visit us
+            p.contact-methods__description 123 Travel Street
+            p.contact-methods__subtext New York, NY 10001
+
+    // Contact Form Section
+    section.contact-form-section
+      .container
+        .contact-form__content
+          .contact-form__info
+            h2.contact-form__heading Send us a message
+            p.contact-form__description Have a question about our tours? Need help with your booking? We'd love to hear from you.
+            .contact-form__benefits
+              .contact-form__benefit
+                svg
+                  use(xlink:href='/img/icons.svg#icon-check')
+                span Quick response within 24 hours
+              .contact-form__benefit
+                svg
+                  use(xlink:href='/img/icons.svg#icon-check')
+                span Expert travel advice
+              .contact-form__benefit
+                svg
+                  use(xlink:href='/img/icons.svg#icon-check')
+                span Personalized recommendations
+          .contact-form__form
+            form.form.form--contact
+              .form__group
+                label.form__label(for='name') Full Name
+                input#name.form__input(type='text', required)
+              .form__group
+                label.form__label(for='email') Email Address
+                input#email.form__input(type='email', required)
+              .form__group
+                label.form__label(for='subject') Subject
+                select#subject.form__input(required)
+                  option(value='') Select a topic
+                  option(value='booking') Booking Support
+                  option(value='tours') Tour Information
+                  option(value='payment') Payment Issues
+                  option(value='general') General Inquiry
+              .form__group
+                label.form__label(for='message') Message
+                textarea#message.form__input(rows='6', required)
+              .form__group
+                button.btn.btn--green(type='submit') Send Message
+
+    // FAQ Section
+    section.contact-faq
+      .container
+        h2.contact-faq__heading Frequently Asked Questions
+        .contact-faq__grid
+          .contact-faq__item
+            h3.contact-faq__question How do I book a tour?
+            p.contact-faq__answer Simply browse our tours, select your preferred dates, and complete the secure checkout process. You'll receive a confirmation email with all the details.
+          .contact-faq__item
+            h3.contact-faq__question Can I cancel my booking?
+            p.contact-faq__answer Yes, you can cancel your booking up to 48 hours before the tour start time. Full refunds are provided for cancellations made within this timeframe.
+          .contact-faq__item
+            h3.contact-faq__question What payment methods do you accept?
+            p.contact-faq__answer We accept all major credit cards, PayPal, and bank transfers. All payments are processed securely through Stripe.
+          .contact-faq__item
+            h3.contact-faq__question Do you offer group discounts?
+            p.contact-faq__answer Yes! Groups of 10 or more receive a 15% discount. Contact us directly for custom group arrangements and special pricing.

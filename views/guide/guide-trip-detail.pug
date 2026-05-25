@@ -1,0 +1,119 @@
+extends ../base
+
+block content
+  main.main
+    - const statusColors = { confirmed: '#55c57a', guide_assigned: '#2998ff', ready_for_trip: '#7c3aed', completed: '#28b487', pending_payment: '#ff7730', cancelled: '#e74c3c' };
+    - const statusColor = statusColors[booking.status] || '#777';
+    - const statusLabel = (booking.status || '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+    section.section-header
+      .heading-box
+        h1.heading-primary
+          span Trip Details
+
+    .guide-trip-detail(style='max-width: 90rem; margin: 4rem auto; padding: 0 2rem;')
+      .detail-grid(style='display: grid; grid-template-columns: 1.2fr 1fr; gap: 3rem;')
+
+        //- Left Column: Trip Info
+        .trip-info(style='background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.06);')
+          if booking.tour
+            .trip-hero(style='position: relative; height: 22rem;')
+              img(src=`/img/tours/${booking.tour.imageCover}` style='width: 100%; height: 100%; object-fit: cover;')
+              .trip-hero__overlay(style='position: absolute; bottom: 0; left: 0; right: 0; padding: 2rem 2.5rem; background: linear-gradient(transparent, rgba(0,0,0,0.75));')
+                h2(style='color: #fff; font-size: 2.2rem; margin: 0;')= booking.tour.name
+                span(style=`display: inline-block; margin-top: 0.5rem; padding: 4px 14px; border-radius: 20px; font-size: 1.2rem; font-weight: 600; color: #fff; background: ${statusColor};`)= statusLabel
+
+          .trip-body(style='padding: 2.5rem;')
+            h3(style='color: #28b487; margin-bottom: 1.5rem; font-size: 1.7rem;') Trip Schedule
+            .info-grid(style='display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; font-size: 1.4rem;')
+              .info-item
+                span(style='display: block; font-size: 1.1rem; color: #999; text-transform: uppercase; letter-spacing: 1px;') Start Date
+                strong= booking.startDate ? new Date(booking.startDate).toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : 'N/A'
+              .info-item
+                span(style='display: block; font-size: 1.1rem; color: #999; text-transform: uppercase; letter-spacing: 1px;') End Date
+                strong= booking.endDate ? new Date(booking.endDate).toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : 'N/A'
+              .info-item
+                span(style='display: block; font-size: 1.1rem; color: #999; text-transform: uppercase; letter-spacing: 1px;') Total Guests
+                strong= booking.guests || 1
+              .info-item
+                span(style='display: block; font-size: 1.1rem; color: #999; text-transform: uppercase; letter-spacing: 1px;') Duration
+                strong= booking.tour ? `${booking.tour.duration} days` : 'N/A'
+
+            if booking.pickupLocation
+              h3(style='color: #28b487; margin: 2.5rem 0 1rem; font-size: 1.7rem;') Pickup Location
+              p(style='font-size: 1.4rem; padding: 1.2rem; background: #f0faf4; border-radius: 8px; border-left: 4px solid #28b487;')= booking.pickupLocation
+
+            if booking.tour && booking.tour.startLocation
+              h3(style='color: #28b487; margin: 2.5rem 0 1rem; font-size: 1.7rem;') Tour Start Location
+              p(style='font-size: 1.4rem;')= booking.tour.startLocation.description || booking.tour.startLocation.address || 'See tour page'
+
+            //- Trip Instructions / Notes
+            h3(style='color: #28b487; margin: 2.5rem 0 1rem; font-size: 1.7rem;') Trip Notes
+            textarea#tripNotes(rows='4' placeholder='Add notes or instructions for this trip...' style='width: 100%; padding: 1.2rem; border: 2px solid #ddd; border-radius: 8px; font-size: 1.3rem; resize: vertical; font-family: inherit;')= booking.tripInstructions || ''
+            button.btn.btn--green#saveNotesBtn(data-booking-id=`${booking._id}` style='margin-top: 1rem;') Save Notes
+
+        //- Right Column: Traveler List
+        .traveler-section
+          .traveler-card(style='background: #fff; border-radius: 12px; padding: 2.5rem; box-shadow: 0 2px 10px rgba(0,0,0,0.06);')
+            h3(style='color: #333; margin-bottom: 2rem; font-size: 1.7rem;') 👥 Traveler List
+            if travelers && travelers.length
+              .traveler-list
+                each t, idx in travelers
+                  .traveler-item(style='display: flex; align-items: center; gap: 1.5rem; padding: 1.5rem; border-bottom: 1px solid #f0f0f0; transition: background 0.2s;')
+                    .traveler-avatar(style='position: relative;')
+                      img(src=`/img/users/${t.user ? t.user.photo || 'default.jpg' : 'default.jpg'}` style='width: 5rem; height: 5rem; border-radius: 50%; object-fit: cover; border: 2px solid #55c57a;')
+                      span(style='position: absolute; bottom: -2px; right: -2px; background: #55c57a; color: #fff; font-size: 1rem; width: 2rem; height: 2rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700;')= idx + 1
+                    .traveler-info(style='flex: 1;')
+                      h4(style='margin: 0; font-size: 1.4rem;')= t.user ? t.user.name : 'Unknown'
+                      p(style='margin: 0; font-size: 1.2rem; color: #777;')= t.user ? t.user.email : ''
+                      .traveler-meta(style='display: flex; gap: 1rem; margin-top: 0.3rem;')
+                        span(style='font-size: 1.1rem; color: #55c57a;') #{t.guests || 1} guest#{(t.guests || 1) > 1 ? 's' : ''}
+                        if t.pickupLocation
+                          span(style='font-size: 1.1rem; color: #2998ff;') 📍 #{t.pickupLocation}
+
+              .traveler-summary(style='margin-top: 1.5rem; padding: 1.2rem; background: #f0faf4; border-radius: 8px; text-align: center;')
+                - const totalGuests = travelers.reduce((sum, t) => sum + (t.guests || 1), 0);
+                span(style='font-size: 1.3rem; color: #28b487; font-weight: 600;') Total: #{travelers.length} booking#{travelers.length > 1 ? 's' : ''} • #{totalGuests} guest#{totalGuests > 1 ? 's' : ''}
+            else
+              p(style='color: #999; text-align: center; padding: 2rem;') No travelers found for this trip.
+
+          //- Contact Info
+          if booking.user
+            .contact-card(style='background: #fff; border-radius: 12px; padding: 2rem; box-shadow: 0 2px 10px rgba(0,0,0,0.06); margin-top: 2rem;')
+              h4(style='color: #333; margin-bottom: 1rem;') 📧 Primary Contact
+              p(style='font-size: 1.4rem; margin: 0;')
+                strong= booking.user.name
+              p(style='font-size: 1.3rem; color: #777; margin: 0;')= booking.user.email
+
+      //- Back link
+      .guide-nav(style='margin-top: 3rem;')
+        a.btn.btn--green(href='/guide/trips') ← Back to My Trips
+
+  //- Save notes handler
+  script.
+    const saveBtn = document.getElementById('saveNotesBtn');
+    if (saveBtn) {
+      saveBtn.addEventListener('click', async function() {
+        const notes = document.getElementById('tripNotes').value;
+        const original = this.textContent;
+        this.textContent = 'Saving...';
+        this.disabled = true;
+
+        try {
+          const res = await fetch(`/api/v1/guide/trips/${this.dataset.bookingId}/notes`, {
+            method: 'PATCH',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tripInstructions: notes })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || 'Failed to save');
+          this.textContent = '✓ Saved!';
+          setTimeout(() => { this.textContent = original; this.disabled = false; }, 2000);
+        } catch(err) {
+          showAlert('error', `Error: ${err.message}`);
+          this.textContent = original;
+          this.disabled = false;
+        }
+      });
+    }

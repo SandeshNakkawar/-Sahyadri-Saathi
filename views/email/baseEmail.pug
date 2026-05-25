@@ -1,0 +1,37 @@
+doctype html
+html
+  head
+    meta(charset='UTF-8')
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    style.
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7fa; color: #333; }
+      .email-wrapper { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+      .email-header { background: linear-gradient(135deg, #55c57a 0%, #28b487 100%); padding: 40px 30px; text-align: center; }
+      .email-header h1 { color: #ffffff; font-size: 24px; font-weight: 700; letter-spacing: 1px; }
+      .email-header .logo { font-size: 32px; margin-bottom: 10px; }
+      .email-body { padding: 40px 30px; line-height: 1.7; }
+      .email-body h2 { color: #28b487; margin-bottom: 15px; font-size: 20px; }
+      .email-body p { margin-bottom: 15px; color: #555; font-size: 15px; }
+      .email-body .highlight { background: #f0faf4; border-left: 4px solid #28b487; padding: 15px 20px; border-radius: 6px; margin: 20px 0; }
+      .email-body .highlight p { margin-bottom: 5px; }
+      .email-body .btn { display: inline-block; background: linear-gradient(135deg, #55c57a 0%, #28b487 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 50px; font-weight: 600; font-size: 15px; margin: 20px 0; }
+      .email-body .btn:hover { opacity: 0.9; }
+      .detail-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+      .detail-table td { padding: 10px 15px; border-bottom: 1px solid #eee; font-size: 14px; }
+      .detail-table td:first-child { color: #888; font-weight: 600; width: 40%; }
+      .detail-table td:last-child { color: #333; }
+      .email-footer { background: #f8f9fa; padding: 25px 30px; text-align: center; border-top: 1px solid #eee; }
+      .email-footer p { font-size: 12px; color: #999; margin-bottom: 5px; }
+      .email-footer a { color: #28b487; text-decoration: none; }
+  body
+    .email-wrapper
+      .email-header
+        .logo 🌍
+        h1 YatraKaro
+      .email-body
+        block content
+      .email-footer
+        p © #{new Date().getFullYear()} YatraKaro. All rights reserved.
+        p Need help? Contact us at
+          a(href='mailto:support@yatrakaro.com')  support@yatrakaro.com

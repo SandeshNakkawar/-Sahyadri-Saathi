@@ -1,0 +1,58 @@
+extends ../base
+
+block content
+  main.main
+    .yk-container
+      .yk-header
+        h1.yk-title My Assigned Trips
+        p.yk-subtitle= bookings && bookings.length ? `You have ${bookings.length} active trip${bookings.length === 1 ? '' : 's'} assigned to guide` : 'You have no assigned trips at the moment'
+
+      if bookings && bookings.length
+        .yk-grid(style='grid-template-columns: repeat(auto-fill, minmax(35rem, 1fr));')
+          each b in bookings
+            - const statusLabel = (b.status || '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            - const isUpcoming = b.startDate && new Date(b.startDate) > new Date();
+            
+            .yk-guide-card
+              div(style='display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;')
+                h3(style='margin: 0; font-size: 1.8rem; font-weight: 700; color: #1e293b;')= b.tour ? b.tour.name : 'Tour Assignment'
+                span(class=`yk-badge yk-badge--${b.status}` style='font-size: 1.1rem; padding: 0.3rem 1rem;')= statusLabel
+              
+              div(style='font-size: 1.35rem; line-height: 1.8; color: #475569; display: flex; flex-direction: column; gap: 0.8rem; margin: 1rem 0;')
+                p(style='margin: 0;')
+                  strong 📅 Dates:
+                  |  #{b.startDate ? new Date(b.startDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'} — #{b.endDate ? new Date(b.endDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}
+                
+                p(style='margin: 0;')
+                  strong 👥 Group Size:
+                  |  #{b.guests || 1} traveler(s)
+                
+                if b.user
+                  p(style='margin: 0;')
+                    strong 🧑 Traveler:
+                    |  #{b.user.name} (#{b.user.email})
+                
+                if b.pickupLocation
+                  p(style='margin: 0;')
+                    strong 📍 Pickup:
+                    |  #{b.pickupLocation}
+                
+                div(style='display: flex; align-items: center; gap: 0.8rem; margin-top: 0.5rem;')
+                  if isUpcoming
+                    span(style='font-size: 1.2rem; color: #55c57a; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem;')
+                      span(style='width: 8px; height: 8px; background: #55c57a; border-radius: 50%; display: inline-block;')
+                      | Upcoming Assignment
+                  else
+                    span(style='font-size: 1.2rem; color: #94a3b8; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem;')
+                      span(style='width: 8px; height: 8px; background: #94a3b8; border-radius: 50%; display: inline-block;')
+                      | Past Trip
+
+              div(style='margin-top: auto; padding-top: 1.5rem; border-top: 1px dashed #e2e8f0; display: flex; justify-content: flex-end;')
+                a.btn.btn--green.btn--small(href=`/guide/trips/${b._id}` style='font-size: 1.2rem; padding: 1rem 2rem;') View Trip Details
+      else
+        .yk-card(style='max-width: 60rem; margin: 4rem auto; padding: 5rem 3rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 2rem;')
+          div(style='background: rgba(124,58,237,0.1); padding: 2rem; border-radius: 50%;')
+            svg(style='width: 6rem; height: 6rem; fill: #7c3aed;')
+              use(xlink:href='/img/icons.svg#icon-user')
+          h2(style='font-size: 2.2rem; font-weight: 700; color: #1e293b; margin: 0;') No Assigned Trips
+          p(style='font-size: 1.5rem; color: #64748b; margin: 0;') You do not have any trips assigned to you by the administrator at this time.

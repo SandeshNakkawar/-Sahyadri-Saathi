@@ -1,0 +1,20 @@
+extends baseEmail
+
+block content
+  h2 Guide Assigned! 🧭
+  p Hi #{firstName},
+  p A guide has been assigned to your upcoming #{tourName} trip.
+  .highlight
+    table.detail-table
+      tr
+        td Guide Name
+        td #{guideName}
+      tr
+        td Guide Email
+        td #{guideEmail}
+      tr
+        td Trip Date
+        td #{new Date(startDate).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+  p Your guide will reach out with additional details and instructions before the trip.
+  a.btn(href=url) View Booking Details
+  p — The YatraKaro Team

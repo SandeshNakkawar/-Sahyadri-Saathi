@@ -1,0 +1,30 @@
+footer.footer
+  .footer__top
+    .footer__brand
+      img(src='/img/logo-green.png' alt='Natour logo')
+      p.footer__tagline Adventure awaits. Discover your next tour.
+    .footer__cta
+      a.btn.btn--green(href='/') Explore tours
+  .footer__grid
+    .footer__col
+      h4.footer__heading Company
+      ul.footer__list
+        li: a(href='/about') About us
+        li: a(href='/careers') Careers
+        li: a(href='/contact') Contact
+    .footer__col
+      h4.footer__heading Get the app
+      ul.footer__list
+        li: a(href='#' onclick='showAlert("success", "App Store coming soon."); return false;') Download for iOS
+        li: a(href='#' onclick='showAlert("success", "Google Play coming soon."); return false;') Download for Android
+    .footer__col
+      h4.footer__heading Become a guide
+      ul.footer__list
+        li: a(href='/signup') Apply now
+        li: a(href='/login') Partner login
+  .footer__bottom
+    ul.footer__links
+      li: a(href='/privacy') Privacy
+      li: a(href='/terms') Terms
+      li: a(href='/support') Support
+    p.footer__copyright &copy; #{new Date().getFullYear()} YatraKaro by Sandesh Nakkawar

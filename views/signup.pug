@@ -1,0 +1,96 @@
+extends base
+
+block content
+  .auth-page
+    .auth-page__visual
+      .auth-page__gradient
+      .auth-page__shapes
+        .auth-page__shape.auth-page__shape--1
+        .auth-page__shape.auth-page__shape--2
+        .auth-page__shape.auth-page__shape--3
+      .auth-page__visual-content
+        img.auth-page__logo(src='/img/logo-white.png' alt='YatraKaro')
+        h2.auth-page__visual-title Start Your Journey
+        p.auth-page__visual-text Create an account to book breathtaking tours, save your favorites, and join our community
+    .auth-page__form-side
+      .auth-page__card
+        .auth-page__card-header
+          h2.auth-page__heading Create Account
+          p.auth-page__subheading Join thousands of happy travelers
+        form.form.form--signup
+          .auth-page__field
+            input#name.auth-page__input(type='text', placeholder=' ', required)
+            label.auth-page__label(for='name') Your name
+            .auth-page__field-line
+          .auth-page__field
+            input#email.auth-page__input(type='email', placeholder=' ', required)
+            label.auth-page__label(for='email') Email address
+            .auth-page__field-line
+          .auth-page__field
+            input#password.auth-page__input(type='password', placeholder=' ', required, minlength='8')
+            label.auth-page__label(for='password') Password
+            .auth-page__field-line
+            .auth-page__strength
+              .auth-page__strength-bar
+              .auth-page__strength-text
+          .auth-page__field
+            input#passwordConfirm.auth-page__input(type='password', placeholder=' ', required, minlength='8')
+            label.auth-page__label(for='passwordConfirm') Confirm password
+            .auth-page__field-line
+          button.auth-page__submit(type='submit') Sign up
+        .auth-page__divider
+          span or
+        .auth-page__footer
+          p Already have an account?&nbsp;
+            a(href='/login') Log in
+
+  script.
+    (function(){
+      // Password strength indicator
+      const pwInput = document.getElementById('password');
+      const bar = document.querySelector('.auth-page__strength-bar');
+      const txt = document.querySelector('.auth-page__strength-text');
+      if (pwInput && bar) {
+        pwInput.addEventListener('input', function(){
+          const v = this.value;
+          let s = 0;
+          if (v.length >= 8) s++;
+          if (/[A-Z]/.test(v)) s++;
+          if (/[0-9]/.test(v)) s++;
+          if (/[^A-Za-z0-9]/.test(v)) s++;
+          const colors = ['#ff4444','#ff8800','#ffcc00','#55c57a'];
+          const labels = ['Weak','Fair','Good','Strong'];
+          bar.style.width = (s * 25) + '%';
+          bar.style.background = colors[s - 1] || '#ddd';
+          txt.textContent = v.length ? (labels[s - 1] || '') : '';
+        });
+      }
+
+      // Signup form submission
+      const form = document.querySelector('.form--signup');
+      if (!form) return;
+      form.addEventListener('submit', async function(e){
+        e.preventDefault();
+        const name = document.getElementById('name').value;
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const passwordConfirm = document.getElementById('passwordConfirm').value;
+        try {
+          const res = await fetch('/api/v1/users/signup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ name, email, password, passwordConfirm })
+          });
+          const data = await res.json();
+          if (!res.ok || data.status !== 'success') {
+            const msg = (data && data.message) ? data.message : 'Signup failed';
+            throw new Error(msg);
+          }
+          showAlert('success', 'Account created! Redirecting...');
+          window.location.assign('/');
+        } catch(err) {
+          showAlert('error', 'Signup failed: ' + err.message);
+        }
+      });
+    })();

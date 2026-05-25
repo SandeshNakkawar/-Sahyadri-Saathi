@@ -1,0 +1,51 @@
+extends base
+
+block content
+  // Page Header
+  section.all-tours-hero
+    .all-tours-hero__bg
+    .container
+      .all-tours-hero__content
+        h1.all-tours-hero__title All Tours
+        p.all-tours-hero__sub Discover our curated collection of extraordinary Indian adventures
+
+  // Tour Cards Grid
+  section.all-tours-section
+    .container
+      .all-tours-section__header
+        p.all-tours-section__count= `${tours.length} adventures available`
+      .all-tours-grid
+        each tour, index in tours
+          .all-tours-card(data-index=index)
+            .all-tours-card__img
+              img(src=`/img/tours/${tour.imageCover}`, alt=`${tour.name}`)
+              .all-tours-card__overlay
+              .all-tours-card__badges
+                span.all-tours-card__badge= tour.difficulty
+                .all-tours-card__rating
+                  svg: use(xlink:href='/img/icons.svg#icon-star')
+                  span= tour.ratingsAverage
+            .all-tours-card__body
+              h3.all-tours-card__title= tour.name
+              p.all-tours-card__desc= tour.summary
+              .all-tours-card__meta
+                .all-tours-card__meta-item
+                  svg: use(xlink:href='/img/icons.svg#icon-map-pin')
+                  span= tour.startLocation.description
+                .all-tours-card__meta-item
+                  svg: use(xlink:href='/img/icons.svg#icon-calendar')
+                  if tour.startDates && tour.startDates.length
+                    span= new Date(tour.startDates[0]).toLocaleString('en-us', { month: 'long', year: 'numeric' })
+                  else
+                    span Not available
+                .all-tours-card__meta-item
+                  svg: use(xlink:href='/img/icons.svg#icon-clock')
+                  span= `${tour.duration} days`
+                .all-tours-card__meta-item
+                  svg: use(xlink:href='/img/icons.svg#icon-user')
+                  span= `${tour.maxGroupSize} people`
+              .all-tours-card__foot
+                .all-tours-card__price
+                  span.all-tours-card__price-val= `₹${tour.price.toLocaleString('en-IN')}`
+                  span.all-tours-card__price-lbl per person
+                a.all-tours-card__btn(href=`/tour/${tour.slug}`) View Details

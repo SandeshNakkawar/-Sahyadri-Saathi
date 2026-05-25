@@ -1,0 +1,41 @@
+extends base
+
+block content
+  main.main
+    section.section-header
+      .heading-box
+        h1.heading-primary
+          span My reviews
+        p.heading-box__text= reviews && reviews.length ? `${reviews.length} review${reviews.length === 1 ? '' : 's'} written` : 'No reviews yet'
+
+    section.section-reviews
+      .reviews
+        if reviews && reviews.length
+          each r in reviews
+            .reviews__card
+              .reviews__avatar
+                img.reviews__avatar-img(src=`/img/users/${(r.user && r.user.photo) || 'default.jpg'}` alt='User photo')
+              .reviews__content
+                .reviews__title
+                  a(href=`/tour/${r.tour.slug}`)= r.tour.name
+                .reviews__rating
+                  - const filled = Math.round(r.rating);
+                  - const max = 5;
+                  span.rating
+                    - for (let i = 1; i <= max; i++) {
+                    if i <= filled
+                      svg
+                        use(xlink:href='/img/icons.svg#icon-star')
+                    else
+                      svg
+                        use(xlink:href='/img/icons.svg#icon-star-outlined')
+                    - }
+                  span= ` ${r.rating} / 5`
+                .reviews__text= r.review
+        else
+          .u-center-text.u-margin-top-huge
+            h2.heading-secondary You have not written any reviews yet
+            p Browse tours and share your experience.
+            a.btn.btn--green(href='/') Browse tours
+
+
