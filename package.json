@@ -12,7 +12,7 @@
     "build:js": "parcel build ./public/js/index.js --out-dir ./public/js --out-file bundle.js",
     "seed": "node scripts/seed-sahyadri.js"
   },
-  "author": "Jonas Schmedtmann",
+  "author": "Sandesh Nakkawar",
   "license": "ISC",
   "dependencies": {
     "@babel/polyfill": "^7.4.4",
