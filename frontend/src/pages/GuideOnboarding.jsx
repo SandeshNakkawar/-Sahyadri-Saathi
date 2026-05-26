@@ -32,6 +32,14 @@ export default function GuideOnboarding() {
   const [addressProof, setAddressProof] = useState(null);
   const [certificate, setCertificate] = useState(null);
 
+  // Dynamic pricing
+  const [pricingRules, setPricingRules] = useState([]);
+  const [advanceDays, setAdvanceDays] = useState(0);
+  const [advanceDiscount, setAdvanceDiscount] = useState(0);
+  const [weekendSurcharge, setWeekendSurcharge] = useState(0);
+
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
   const languagesList = ['Marathi', 'Hindi', 'English', 'Kannada', 'Gujarati', 'German', 'French'];
   const specialtiesList = [
     { value: 'history', label: 'Maratha History & Architecture' },
@@ -61,6 +69,10 @@ export default function GuideOnboarding() {
           setSelectedLanguages(p.languages || []);
           setSelectedSpecialties(p.specialties || []);
           setSelectedPlaces(p.serviceLocations?.map(loc => loc._id) || []);
+          setPricingRules(p.pricingRules || []);
+          setAdvanceDays(p.advanceBookingDiscount?.daysInAdvance || 0);
+          setAdvanceDiscount(p.advanceBookingDiscount?.discountPercent || 0);
+          setWeekendSurcharge(p.weekendSurchargePercent || 0);
         }
 
         // Fetch places for service location checklist
@@ -153,6 +165,16 @@ export default function GuideOnboarding() {
       selectedLanguages.forEach(lang => formData.append('languages[]', lang));
       selectedSpecialties.forEach(spec => formData.append('specialties[]', spec));
       selectedPlaces.forEach(placeId => formData.append('serviceLocations[]', placeId));
+
+      // Dynamic pricing
+      if (pricingRules.length > 0) {
+        formData.append('pricingRules', JSON.stringify(pricingRules));
+      }
+      formData.append('advanceBookingDiscount', JSON.stringify({
+        daysInAdvance: advanceDays,
+        discountPercent: advanceDiscount
+      }));
+      formData.append('weekendSurchargePercent', weekendSurcharge);
 
       if (profilePhoto) {
         formData.append('profilePhoto', profilePhoto);
@@ -395,6 +417,135 @@ export default function GuideOnboarding() {
                   className="form-input"
                   required
                 />
+              </div>
+            </div>
+
+            {/* ─── Dynamic Pricing Section ─────────────────────── */}
+            <div style={{ marginTop: '2rem', padding: '1.5rem', background: 'var(--color-stone)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
+              <h3 style={{ marginBottom: '0.25rem', color: 'var(--color-primary-dark)' }}>⚡ Dynamic Pricing (Optional)</h3>
+              <p className="text-muted text-sm" style={{ marginBottom: '1.5rem' }}>Set seasonal rates, weekend surcharges, and early-bird discounts. Leave empty to use flat pricing.</p>
+
+              {/* Seasonal Rules */}
+              <label className="form-label" style={{ fontWeight: 700 }}>Seasonal Pricing Rules</label>
+              {pricingRules.map((rule, idx) => (
+                <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+                  <input
+                    type="text"
+                    placeholder="Name (e.g. monsoon)"
+                    value={rule.name}
+                    onChange={e => {
+                      const updated = [...pricingRules];
+                      updated[idx].name = e.target.value;
+                      setPricingRules(updated);
+                    }}
+                    className="form-input"
+                    style={{ flex: '1', minWidth: '100px' }}
+                  />
+                  <select
+                    value={rule.startMonth}
+                    onChange={e => {
+                      const updated = [...pricingRules];
+                      updated[idx].startMonth = parseInt(e.target.value);
+                      setPricingRules(updated);
+                    }}
+                    className="form-select"
+                    style={{ width: '85px' }}
+                  >
+                    {monthNames.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+                  </select>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>to</span>
+                  <select
+                    value={rule.endMonth}
+                    onChange={e => {
+                      const updated = [...pricingRules];
+                      updated[idx].endMonth = parseInt(e.target.value);
+                      setPricingRules(updated);
+                    }}
+                    className="form-select"
+                    style={{ width: '85px' }}
+                  >
+                    {monthNames.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+                  </select>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0.5"
+                      max="3"
+                      value={rule.multiplier}
+                      onChange={e => {
+                        const updated = [...pricingRules];
+                        updated[idx].multiplier = parseFloat(e.target.value) || 1;
+                        setPricingRules(updated);
+                      }}
+                      className="form-input"
+                      style={{ width: '70px' }}
+                    />
+                    <span className="text-muted text-sm">×</span>
+                  </div>
+                  <button type="button" onClick={() => setPricingRules(pricingRules.filter((_, i) => i !== idx))} className="btn btn-ghost btn-sm" style={{ color: 'var(--color-danger)', padding: '0.25rem 0.5rem' }}>✕</button>
+                  {/* Live preview for this rule */}
+                  <span className="text-sm" style={{ color: 'var(--color-accent)', fontWeight: 600 }}>
+                    = ₹{Math.round(pricePerDay * rule.multiplier)}/day
+                  </span>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => setPricingRules([...pricingRules, { name: '', startMonth: 1, endMonth: 3, multiplier: 1 }])}
+                className="btn btn-outline btn-sm"
+                style={{ marginTop: '0.5rem' }}
+              >
+                + Add Season Rule
+              </button>
+
+              {/* Weekend Surcharge */}
+              <div className="grid grid-2" style={{ marginTop: '1.5rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Weekend Surcharge (Saturday) %</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="50"
+                    value={weekendSurcharge}
+                    onChange={e => setWeekendSurcharge(parseInt(e.target.value) || 0)}
+                    className="form-input"
+                    placeholder="e.g. 10"
+                  />
+                  {weekendSurcharge > 0 && (
+                    <span className="text-sm text-muted">Saturday treks: ₹{Math.round(pricePerDay * (1 + weekendSurcharge / 100))}/day</span>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Early Bird Discount</label>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <input
+                      type="number"
+                      min="0"
+                      value={advanceDays}
+                      onChange={e => setAdvanceDays(parseInt(e.target.value) || 0)}
+                      className="form-input"
+                      style={{ width: '80px' }}
+                      placeholder="Days"
+                    />
+                    <span className="text-sm text-muted">days early →</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="50"
+                      value={advanceDiscount}
+                      onChange={e => setAdvanceDiscount(parseInt(e.target.value) || 0)}
+                      className="form-input"
+                      style={{ width: '70px' }}
+                      placeholder="%"
+                    />
+                    <span className="text-sm text-muted">% off</span>
+                  </div>
+                  {advanceDays > 0 && advanceDiscount > 0 && (
+                    <span className="text-sm text-muted">Book {advanceDays}+ days early: ₹{Math.round(pricePerDay * (1 - advanceDiscount / 100))}/day</span>
+                  )}
+                </div>
               </div>
             </div>
 

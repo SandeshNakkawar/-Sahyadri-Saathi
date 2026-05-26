@@ -106,17 +106,52 @@ const sendReviewRequests = cron.schedule('0 10 * * *', async () => {
   }
 }, { scheduled: false });
 
+// ─── Auto-Reject Stale Pending Bookings (runs every 6 hours) ────
+// If a guide doesn't respond within 48 hours, the booking is auto-rejected
+// and date locks are released so other tourists can book those dates.
+const DateLock = require('../models/dateLockModel');
+
+const autoRejectStaleBookings = cron.schedule('0 */6 * * *', async () => {
+  try {
+    console.log('🧹 Running stale booking auto-rejection...');
+
+    const cutoff = new Date();
+    cutoff.setHours(cutoff.getHours() - 48);
+
+    const staleBookings = await GuideBooking.find({
+      status: 'pending',
+      createdAt: { $lt: cutoff }
+    });
+
+    console.log(`  Found ${staleBookings.length} stale pending bookings (>48h)`);
+
+    for (const booking of staleBookings) {
+      booking.status = 'rejected';
+      booking.cancellationReason = 'Auto-rejected: guide did not respond within 48 hours';
+      await booking.save();
+
+      // Release date locks
+      await DateLock.deleteMany({ booking: booking._id });
+      console.log(`  ❌ Auto-rejected booking ${booking._id}`);
+    }
+  } catch (err) {
+    console.error('❌ Stale booking auto-rejection failed:', err);
+  }
+}, { scheduled: false });
+
 // ─── Start all tasks ─────────────────────────────────────────────
 function startScheduledTasks() {
   sendTripReminders.start();
   sendReviewRequests.start();
-  console.log('📅 Scheduled tasks started: trip reminders and review requests');
+  autoRejectStaleBookings.start();
+  console.log('📅 Scheduled tasks started: trip reminders, review requests, stale booking cleanup');
 }
 
 // ─── Stop all tasks ──────────────────────────────────────────────
 function stopScheduledTasks() {
   sendTripReminders.stop();
   sendReviewRequests.stop();
+  autoRejectStaleBookings.stop();
   console.log('📅 Scheduled tasks stopped');
 }
 

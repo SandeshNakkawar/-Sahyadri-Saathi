@@ -222,10 +222,41 @@ export default function BookingDetail() {
                 💳 Invoice Receipt
               </h3>
               <div style={{ fontSize: '0.95rem', background: 'var(--color-bg)', padding: '1rem', borderRadius: 'var(--radius-sm)' }}>
-                <div className="flex flex-between" style={{ padding: '0.35rem 0' }}>
-                  <span>Trek Service Fee:</span>
-                  <span>₹{booking.totalPrice}</span>
-                </div>
+                {booking.priceSnapshot?.basePricePerDay ? (
+                  <>
+                    <div className="flex flex-between" style={{ padding: '0.35rem 0' }}>
+                      <span>Base rate:</span>
+                      <span>₹{booking.priceSnapshot.basePricePerDay}/day</span>
+                    </div>
+                    {booking.priceSnapshot.seasonName && (
+                      <div className="flex flex-between" style={{ padding: '0.35rem 0', color: booking.priceSnapshot.seasonalMultiplier > 1 ? '#dc2626' : '#16a34a' }}>
+                        <span>{booking.priceSnapshot.seasonName} ({booking.priceSnapshot.seasonalMultiplier}×):</span>
+                        <span>₹{Math.round(booking.priceSnapshot.basePricePerDay * booking.priceSnapshot.seasonalMultiplier)}/day</span>
+                      </div>
+                    )}
+                    {booking.priceSnapshot.weekendSurchargeApplied && (
+                      <div className="flex flex-between" style={{ padding: '0.35rem 0', color: '#dc2626', fontSize: '0.85rem' }}>
+                        <span>Saturday surcharge (+{booking.priceSnapshot.weekendSurchargePercent}%):</span>
+                        <span>Applied</span>
+                      </div>
+                    )}
+                    {booking.priceSnapshot.advanceDiscountApplied && (
+                      <div className="flex flex-between" style={{ padding: '0.35rem 0', color: '#16a34a', fontSize: '0.85rem' }}>
+                        <span>Early bird ({booking.priceSnapshot.daysBookedInAdvance}d, -{booking.priceSnapshot.advanceDiscountPercent}%):</span>
+                        <span>-{booking.priceSnapshot.advanceDiscountPercent}%</span>
+                      </div>
+                    )}
+                    <div className="flex flex-between" style={{ padding: '0.35rem 0', borderTop: '1px dashed var(--color-border)', marginTop: '0.25rem', fontWeight: 600 }}>
+                      <span>Effective rate:</span>
+                      <span>₹{booking.priceSnapshot.effectivePricePerDay}/day × {booking.numberOfDays} day{booking.numberOfDays > 1 ? 's' : ''}</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-between" style={{ padding: '0.35rem 0' }}>
+                    <span>Trek Service Fee:</span>
+                    <span>₹{booking.totalPrice}</span>
+                  </div>
+                )}
                 <div className="flex flex-between" style={{ padding: '0.35rem 0', color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>
                   <span>Stripe Secure Gateway:</span>
                   <span>Free</span>

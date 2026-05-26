@@ -65,6 +65,45 @@ const guideProfileSchema = new mongoose.Schema(
       type: Number,
       min: [0, 'Half-day price cannot be negative']
     },
+    // ─── Dynamic Pricing ─────────────────────────────────────
+    pricingRules: [
+      {
+        name: {
+          type: String,
+          trim: true,
+          required: [true, 'Pricing rule must have a name']
+        },
+        startMonth: {
+          type: Number,
+          required: true,
+          min: [1, 'Month must be between 1 and 12'],
+          max: [12, 'Month must be between 1 and 12']
+        },
+        endMonth: {
+          type: Number,
+          required: true,
+          min: [1, 'Month must be between 1 and 12'],
+          max: [12, 'Month must be between 1 and 12']
+        },
+        multiplier: {
+          type: Number,
+          required: true,
+          min: [0.5, 'Multiplier must be at least 0.5'],
+          max: [3, 'Multiplier cannot exceed 3x'],
+          default: 1
+        }
+      }
+    ],
+    advanceBookingDiscount: {
+      daysInAdvance: { type: Number, default: 0, min: 0 },
+      discountPercent: { type: Number, default: 0, min: 0, max: 50 }
+    },
+    weekendSurchargePercent: {
+      type: Number,
+      default: 0,
+      min: [0, 'Weekend surcharge cannot be negative'],
+      max: [50, 'Weekend surcharge cannot exceed 50%']
+    },
     maxGroupSize: {
       type: Number,
       default: 10,
@@ -130,6 +169,49 @@ const guideProfileSchema = new mongoose.Schema(
     toObject: { virtuals: true }
   }
 );
+
+// ─── Validate overlapping pricing rules ──────────────────────────
+guideProfileSchema.pre('save', function(next) {
+  if (!this.pricingRules || this.pricingRules.length < 2) return next();
+
+  // Expand each rule into a Set of months it covers
+  const expandMonths = (start, end) => {
+    const months = new Set();
+    if (start <= end) {
+      for (let m = start; m <= end; m++) months.add(m);
+    } else {
+      // Wrapping range (e.g. Nov=11 to Feb=2)
+      for (let m = start; m <= 12; m++) months.add(m);
+      for (let m = 1; m <= end; m++) months.add(m);
+    }
+    return months;
+  };
+
+  // Check every pair for overlap
+  for (let i = 0; i < this.pricingRules.length; i++) {
+    const monthsA = expandMonths(
+      this.pricingRules[i].startMonth,
+      this.pricingRules[i].endMonth
+    );
+    for (let j = i + 1; j < this.pricingRules.length; j++) {
+      const monthsB = expandMonths(
+        this.pricingRules[j].startMonth,
+        this.pricingRules[j].endMonth
+      );
+      for (const m of monthsA) {
+        if (monthsB.has(m)) {
+          return next(
+            new Error(
+              `Pricing rules "${this.pricingRules[i].name}" and "${this.pricingRules[j].name}" overlap in month ${m}. Each month can only belong to one pricing rule.`
+            )
+          );
+        }
+      }
+    }
+  }
+
+  next();
+});
 
 // Indexes
 guideProfileSchema.index({ user: 1 }, { unique: true });

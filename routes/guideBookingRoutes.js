@@ -4,6 +4,12 @@ const authController = require('../controllers/authController');
 
 const router = express.Router();
 
+// Public: blocked dates for a guide (no auth needed — tourists browse availability)
+router.get(
+  '/guide/:guideProfileId/blocked-dates',
+  guideBookingController.getGuideBlockedDates
+);
+
 router.use(authController.protect);
 
 // Tourist routes

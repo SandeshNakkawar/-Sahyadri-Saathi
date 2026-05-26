@@ -39,6 +39,18 @@ const guideBookingSchema = new mongoose.Schema(
       type: Number,
       required: [true, 'A booking must have a total price']
     },
+    // ─── Price snapshot: frozen pricing breakdown at booking time ──
+    priceSnapshot: {
+      basePricePerDay: Number,
+      effectivePricePerDay: Number,
+      seasonalMultiplier: { type: Number, default: 1 },
+      seasonName: String,
+      weekendSurchargeApplied: { type: Boolean, default: false },
+      weekendSurchargePercent: { type: Number, default: 0 },
+      advanceDiscountApplied: { type: Boolean, default: false },
+      advanceDiscountPercent: { type: Number, default: 0 },
+      daysBookedInAdvance: Number
+    },
     platformCommissionRate: {
       type: Number,
       default: parseFloat(process.env.PLATFORM_COMMISSION_RATE) || 0.15

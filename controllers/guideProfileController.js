@@ -130,8 +130,20 @@ exports.createOrUpdateProfile = catchAsync(async (req, res, next) => {
     'serviceLocations', 'languages', 'specialties',
     'experienceYears', 'pricePerDay', 'halfDayPrice',
     'maxGroupSize', 'availability', 'travelRadiusKm',
-    'documents'
+    'documents',
+    'pricingRules', 'advanceBookingDiscount', 'weekendSurchargePercent'
   ];
+
+  // Parse JSON-stringified pricing fields from FormData
+  if (typeof req.body.pricingRules === 'string') {
+    try { req.body.pricingRules = JSON.parse(req.body.pricingRules); } catch (e) { /* ignore */ }
+  }
+  if (typeof req.body.advanceBookingDiscount === 'string') {
+    try { req.body.advanceBookingDiscount = JSON.parse(req.body.advanceBookingDiscount); } catch (e) { /* ignore */ }
+  }
+  if (typeof req.body.weekendSurchargePercent === 'string') {
+    req.body.weekendSurchargePercent = parseInt(req.body.weekendSurchargePercent, 10) || 0;
+  }
 
   const updates = {};
   allowedFields.forEach(field => {
@@ -435,5 +447,35 @@ exports.getAllGuides = catchAsync(async (req, res, next) => {
     status: 'success',
     results: guides.length,
     data: { guides }
+  });
+});
+
+// ─── Public: Price Preview ───────────────────────────────────────
+// GET /guides/:id/price-preview?startDate=2025-08-15&numberOfDays=3
+// Single source of truth — frontend never duplicates pricing logic.
+exports.getPricePreview = catchAsync(async (req, res, next) => {
+  const guide = await GuideProfile.findById(req.params.id);
+  if (!guide) {
+    return next(new AppError('No guide found with that ID.', 404));
+  }
+
+  const { startDate, numberOfDays } = req.query;
+  if (!startDate || !numberOfDays) {
+    return next(new AppError('Please provide startDate and numberOfDays query parameters.', 400));
+  }
+
+  const days = parseInt(numberOfDays, 10) || 1;
+  const { _computeEffectivePrice } = require('./guideBookingController');
+  const pricing = _computeEffectivePrice(guide, new Date(startDate));
+  const totalPrice = pricing.effectivePricePerDay * days;
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      basePricePerDay: guide.pricePerDay,
+      ...pricing,
+      numberOfDays: days,
+      totalPrice
+    }
   });
 });

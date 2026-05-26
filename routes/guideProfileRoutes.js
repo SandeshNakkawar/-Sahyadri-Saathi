@@ -22,6 +22,9 @@ router.get(
 // Public routes — approved guides only
 router.get('/', guideProfileController.getPublicGuides);
 
+// Public: Price preview (no auth — tourists browse pricing before login)
+router.get('/:id/price-preview', guideProfileController.getPricePreview);
+
 // Protected routes — require login
 router.use(authController.protect);
 
