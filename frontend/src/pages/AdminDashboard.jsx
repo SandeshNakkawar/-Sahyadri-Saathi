@@ -40,9 +40,23 @@ export default function AdminDashboard() {
   const [placeImage, setPlaceImage] = useState(null);
   const [placeSubmitting, setPlaceSubmitting] = useState(false);
 
+  // Revenue chart state
+  const [revenueData, setRevenueData] = useState(null);
+  const [revenueYear, setRevenueYear] = useState(new Date().getFullYear());
+
+  // Users tab state
+  const [users, setUsers] = useState([]);
+  const [userRoleFilter, setUserRoleFilter] = useState('');
+
+  // Reviews tab state
+  const [reviews, setReviews] = useState([]);
+
+  // Guide filter for verifications tab
+  const [guideStatusFilter, setGuideStatusFilter] = useState('pending_review');
+
   useEffect(() => {
     fetchAdminData();
-  }, [tab]);
+  }, [tab, guideStatusFilter, userRoleFilter, revenueYear]);
 
   const fetchAdminData = async () => {
     setLoading(true);
@@ -51,10 +65,10 @@ export default function AdminDashboard() {
         const statsRes = await api.get('/admin/dashboard');
         setStats(statsRes.data.data);
       } else if (tab === 'verifications') {
-        const pendingRes = await api.get('/guide-profiles/admin/pending');
-        setPendingGuides(pendingRes.data.data.guides || []);
+        const guidesRes = await api.get(`/guide-profiles/admin/all${guideStatusFilter ? `?status=${guideStatusFilter}` : ''}`);
+        setPendingGuides(guidesRes.data.data.guides || []);
       } else if (tab === 'payouts') {
-        const payoutsRes = await api.get('/payout-requests/admin');
+        const payoutsRes = await api.get('/admin/payouts');
         setPayouts(payoutsRes.data.data.payouts || []);
       } else if (tab === 'bookings') {
         const bookingsRes = await api.get('/admin/bookings');
@@ -62,6 +76,15 @@ export default function AdminDashboard() {
       } else if (tab === 'places') {
         const placesRes = await api.get('/places?limit=100');
         setPlaces(placesRes.data.data.data || []);
+      } else if (tab === 'revenue') {
+        const revRes = await api.get(`/admin/revenue?year=${revenueYear}`);
+        setRevenueData(revRes.data.data);
+      } else if (tab === 'users') {
+        const usersRes = await api.get(`/admin/users${userRoleFilter ? `?role=${userRoleFilter}` : ''}`);
+        setUsers(usersRes.data.data.users || []);
+      } else if (tab === 'reviews') {
+        const reviewsRes = await api.get('/admin/reviews');
+        setReviews(reviewsRes.data.data.reviews || []);
       }
     } catch (err) {
       console.error('Failed to fetch admin data:', err);
@@ -155,6 +178,41 @@ export default function AdminDashboard() {
       setPayouts(prev => prev.map(p => p._id === payoutId ? { ...p, status: 'rejected', adminNote: note } : p));
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to reject payout');
+    }
+  };
+
+  // ─── Guide Suspend / Reinstate Handlers ───────────────────
+  const handleSuspendGuide = async (id) => {
+    if (!window.confirm('Suspend this guide? They will be hidden from public listings.')) return;
+    try {
+      await api.patch(`/guide-profiles/admin/${id}/suspend`);
+      alert('Guide suspended.');
+      setPendingGuides(prev => prev.map(g => g._id === id ? { ...g, verificationStatus: 'suspended', isPublic: false } : g));
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to suspend guide');
+    }
+  };
+
+  const handleReinstateGuide = async (id) => {
+    if (!window.confirm('Reinstate this guide? They will be approved and visible again.')) return;
+    try {
+      await api.patch(`/guide-profiles/admin/${id}/approve`);
+      alert('Guide reinstated and approved.');
+      setPendingGuides(prev => prev.map(g => g._id === id ? { ...g, verificationStatus: 'approved', isPublic: true } : g));
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to reinstate guide');
+    }
+  };
+
+  // ─── Delete Review Handler ──────────────────────────────
+  const handleDeleteReview = async (id) => {
+    if (!window.confirm('Permanently delete this review? This cannot be undone.')) return;
+    try {
+      await api.delete(`/reviews/${id}`);
+      alert('Review deleted.');
+      setReviews(prev => prev.filter(r => r._id !== id));
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to delete review');
     }
   };
 
@@ -271,16 +329,25 @@ export default function AdminDashboard() {
           📊 Overview
         </button>
         <button className={`dash-tab ${tab === 'verifications' ? 'active' : ''}`} onClick={() => setTab('verifications')}>
-          🔍 Guide Verifications ({stats?.pendingVerifications || pendingGuides.length || 0})
+          🔍 Guides ({stats?.pendingVerifications || pendingGuides.length || 0})
         </button>
         <button className={`dash-tab ${tab === 'payouts' ? 'active' : ''}`} onClick={() => setTab('payouts')}>
-          💳 Payout Requests ({stats?.pendingPayouts || payouts.filter(p => p.status === 'requested').length || 0})
+          💳 Payouts ({stats?.pendingPayouts || payouts.filter(p => p.status === 'requested').length || 0})
         </button>
         <button className={`dash-tab ${tab === 'bookings' ? 'active' : ''}`} onClick={() => setTab('bookings')}>
           🥾 All Bookings
         </button>
+        <button className={`dash-tab ${tab === 'revenue' ? 'active' : ''}`} onClick={() => setTab('revenue')}>
+          📈 Revenue
+        </button>
+        <button className={`dash-tab ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>
+          👥 Users
+        </button>
+        <button className={`dash-tab ${tab === 'reviews' ? 'active' : ''}`} onClick={() => setTab('reviews')}>
+          ⭐ Reviews
+        </button>
         <button className={`dash-tab ${tab === 'places' ? 'active' : ''}`} onClick={() => setTab('places')}>
-          🏰 Places Management
+          🏰 Places
         </button>
       </div>
 
@@ -370,14 +437,25 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* Tab Content: VERIFICATIONS */}
+          {/* Tab Content: VERIFICATIONS (All Guides with Filter) */}
           {tab === 'verifications' && (
             <div className="verifications-tab animate-fade-in">
-              <h3>Guides Awaiting Verification</h3>
-              <p className="text-muted" style={{ marginBottom: '1.5rem' }}>Verify their submitted documents and set public visibility.</p>
+              <div className="flex flex-between" style={{ marginBottom: '1.5rem', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
+                <div>
+                  <h3>Guide Management</h3>
+                  <p className="text-muted">Filter by status, verify documents, suspend or reinstate guides.</p>
+                </div>
+                <select className="form-select" style={{ width: 'auto', minWidth: '180px' }} value={guideStatusFilter} onChange={e => setGuideStatusFilter(e.target.value)}>
+                  <option value="pending_review">Pending Review</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="suspended">Suspended</option>
+                  <option value="">All Statuses</option>
+                </select>
+              </div>
               
               {pendingGuides.length === 0 ? (
-                <p className="text-muted" style={{ padding: '2rem 0' }}>No guide profiles currently pending review.</p>
+                <p className="text-muted" style={{ padding: '2rem 0' }}>No guides found with this status.</p>
               ) : (
                 <div className="bookings-list">
                   {pendingGuides.map(guide => (
@@ -387,7 +465,9 @@ export default function AdminDashboard() {
                           <h4>{guide.displayName}</h4>
                           <p className="text-muted text-sm">Email: {guide.user?.email || 'N/A'} | Phone: {guide.user?.phone || 'N/A'}</p>
                         </div>
-                        <span className="badge badge-pending">Pending Review</span>
+                        <span className={`badge badge-${guide.verificationStatus === 'approved' ? 'verified' : guide.verificationStatus === 'suspended' ? 'danger' : 'pending'}`} style={{ textTransform: 'capitalize' }}>
+                          {guide.verificationStatus.replace('_', ' ')}
+                        </span>
                       </div>
                       
                       <div className="booking-item-details">
@@ -398,20 +478,35 @@ export default function AdminDashboard() {
                         <div className="grid-colspan-all"><strong>Bio:</strong> "{guide.bio}"</div>
                       </div>
 
-                      <div style={{ marginTop: '1rem', borderTop: '1px solid var(--color-border)', paddingTop: '1rem' }}>
-                        <strong>Verification Documents (Stored Privately):</strong>
-                        <div className="flex gap-md" style={{ marginTop: '0.5rem', flexWrap: 'wrap' }}>
-                          <button onClick={() => viewDoc(guide._id, 'idProof')} className="btn btn-outline btn-sm">🪪 View ID Proof</button>
-                          <button onClick={() => viewDoc(guide._id, 'addressProof')} className="btn btn-outline btn-sm">🏠 View Address Proof</button>
-                          {guide.documents?.certificate && (
-                            <button onClick={() => viewDoc(guide._id, 'certificate')} className="btn btn-outline btn-sm">📜 View Trekking Certificate</button>
-                          )}
+                      {guide.verificationStatus === 'pending_review' && (
+                        <div style={{ marginTop: '1rem', borderTop: '1px solid var(--color-border)', paddingTop: '1rem' }}>
+                          <strong>Verification Documents (Stored Privately):</strong>
+                          <div className="flex gap-md" style={{ marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                            <button onClick={() => viewDoc(guide._id, 'idProof')} className="btn btn-outline btn-sm">🪪 View ID Proof</button>
+                            <button onClick={() => viewDoc(guide._id, 'addressProof')} className="btn btn-outline btn-sm">🏠 View Address Proof</button>
+                            {guide.documents?.certificate && (
+                              <button onClick={() => viewDoc(guide._id, 'certificate')} className="btn btn-outline btn-sm">📜 View Trekking Certificate</button>
+                            )}
+                          </div>
                         </div>
-                      </div>
+                      )}
 
                       <div className="booking-item-actions" style={{ marginTop: '1.5rem' }}>
-                        <button onClick={() => openRejectModal(guide._id)} className="btn btn-outline btn-sm" style={{ borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }}>❌ Reject Application</button>
-                        <button onClick={() => handleApproveGuide(guide._id)} className="btn btn-primary btn-sm">✅ Approve Guide</button>
+                        {guide.verificationStatus === 'pending_review' && (
+                          <>
+                            <button onClick={() => openRejectModal(guide._id)} className="btn btn-outline btn-sm" style={{ borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }}>❌ Reject</button>
+                            <button onClick={() => handleApproveGuide(guide._id)} className="btn btn-primary btn-sm">✅ Approve</button>
+                          </>
+                        )}
+                        {guide.verificationStatus === 'approved' && (
+                          <button onClick={() => handleSuspendGuide(guide._id)} className="btn btn-outline btn-sm" style={{ borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }}>⛔ Suspend Guide</button>
+                        )}
+                        {guide.verificationStatus === 'suspended' && (
+                          <button onClick={() => handleReinstateGuide(guide._id)} className="btn btn-primary btn-sm">🔄 Reinstate Guide</button>
+                        )}
+                        {guide.verificationStatus === 'rejected' && (
+                          <button onClick={() => handleApproveGuide(guide._id)} className="btn btn-primary btn-sm">✅ Approve</button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -569,6 +664,209 @@ export default function AdminDashboard() {
                     ))}
                   </tbody>
                 </table>
+              )}
+            </div>
+          )}
+
+          {/* Tab Content: REVENUE CHART */}
+          {tab === 'revenue' && (
+            <div className="revenue-tab animate-fade-in">
+              <div className="flex flex-between" style={{ marginBottom: '1.5rem', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
+                <div>
+                  <h3>Revenue Analytics</h3>
+                  <p className="text-muted">Monthly breakdown of platform revenue and commission.</p>
+                </div>
+                <select className="form-select" style={{ width: 'auto', minWidth: '120px' }} value={revenueYear} onChange={e => setRevenueYear(parseInt(e.target.value))}>
+                  {[...Array(5)].map((_, i) => {
+                    const y = new Date().getFullYear() - i;
+                    return <option key={y} value={y}>{y}</option>;
+                  })}
+                </select>
+              </div>
+
+              {!revenueData ? (
+                <p className="text-muted">Loading revenue data...</p>
+              ) : (() => {
+                const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                const filled = months.map((name, i) => {
+                  const found = revenueData.monthlyRevenue.find(m => m.month === i + 1);
+                  return { name, revenue: found?.revenue || 0, commission: found?.commission || 0, bookings: found?.bookings || 0 };
+                });
+                const maxVal = Math.max(...filled.map(m => m.revenue), 1);
+                const chartHeight = 280;
+                const barWidth = 28;
+                const gap = 4;
+
+                return (
+                  <>
+                    <div className="stats-grid" style={{ marginBottom: 'var(--space-xl)' }}>
+                      <div className="stat-card">
+                        <div className="stat-icon">💰</div>
+                        <div className="stat-info">
+                          <span className="stat-value">₹{revenueData.totalRevenue?.toLocaleString()}</span>
+                          <span className="stat-label">Total Revenue ({revenueYear})</span>
+                        </div>
+                      </div>
+                      <div className="stat-card accent">
+                        <div className="stat-icon">📈</div>
+                        <div className="stat-info">
+                          <span className="stat-value">₹{revenueData.totalCommission?.toLocaleString()}</span>
+                          <span className="stat-label">Platform Commission</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="card" style={{ padding: 'var(--space-xl)', overflowX: 'auto' }}>
+                      <svg width="100%" viewBox={`0 0 ${12 * (barWidth * 2 + gap * 3) + 60} ${chartHeight + 50}`} style={{ minWidth: '700px' }}>
+                        {/* Y-axis labels */}
+                        {[0, 0.25, 0.5, 0.75, 1].map((pct, i) => (
+                          <g key={i}>
+                            <text x="50" y={chartHeight - pct * chartHeight + 5} textAnchor="end" fontSize="11" fill="var(--color-text-secondary)">
+                              ₹{Math.round(maxVal * pct / 1000)}k
+                            </text>
+                            <line x1="55" y1={chartHeight - pct * chartHeight} x2={12 * (barWidth * 2 + gap * 3) + 55} y2={chartHeight - pct * chartHeight} stroke="var(--color-border)" strokeDasharray="4" />
+                          </g>
+                        ))}
+                        {/* Bars */}
+                        {filled.map((m, i) => {
+                          const x = 60 + i * (barWidth * 2 + gap * 3);
+                          const revH = (m.revenue / maxVal) * chartHeight;
+                          const comH = (m.commission / maxVal) * chartHeight;
+                          return (
+                            <g key={i}>
+                              <rect x={x} y={chartHeight - revH} width={barWidth} height={revH} rx={4} fill="var(--color-primary)" opacity={0.85}>
+                                <title>{m.name}: ₹{m.revenue.toLocaleString()} revenue, {m.bookings} bookings</title>
+                              </rect>
+                              <rect x={x + barWidth + gap} y={chartHeight - comH} width={barWidth} height={comH} rx={4} fill="var(--color-accent)" opacity={0.85}>
+                                <title>{m.name}: ₹{m.commission.toLocaleString()} commission</title>
+                              </rect>
+                              <text x={x + barWidth} y={chartHeight + 18} textAnchor="middle" fontSize="11" fill="var(--color-text-secondary)">{m.name}</text>
+                            </g>
+                          );
+                        })}
+                      </svg>
+                      <div className="flex gap-lg" style={{ marginTop: 'var(--space-md)', justifyContent: 'center' }}>
+                        <div className="flex gap-sm" style={{ alignItems: 'center' }}>
+                          <div style={{ width: 14, height: 14, borderRadius: 3, background: 'var(--color-primary)', opacity: 0.85 }}></div>
+                          <span className="text-sm text-muted">Total Revenue</span>
+                        </div>
+                        <div className="flex gap-sm" style={{ alignItems: 'center' }}>
+                          <div style={{ width: 14, height: 14, borderRadius: 3, background: 'var(--color-accent)', opacity: 0.85 }}></div>
+                          <span className="text-sm text-muted">Platform Commission (15%)</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Monthly Breakdown Table */}
+                    <table className="admin-list-table" style={{ marginTop: 'var(--space-xl)' }}>
+                      <thead>
+                        <tr>
+                          <th>Month</th>
+                          <th>Revenue</th>
+                          <th>Commission</th>
+                          <th>Bookings</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filled.filter(m => m.revenue > 0).map(m => (
+                          <tr key={m.name}>
+                            <td><strong>{m.name}</strong></td>
+                            <td>₹{m.revenue.toLocaleString()}</td>
+                            <td>₹{m.commission.toLocaleString()}</td>
+                            <td>{m.bookings}</td>
+                          </tr>
+                        ))}
+                        {filled.filter(m => m.revenue > 0).length === 0 && (
+                          <tr><td colSpan={4} className="text-muted" style={{ textAlign: 'center' }}>No revenue data for {revenueYear}.</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* Tab Content: USERS */}
+          {tab === 'users' && (
+            <div className="users-tab animate-fade-in">
+              <div className="flex flex-between" style={{ marginBottom: '1.5rem', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
+                <div>
+                  <h3>All Users</h3>
+                  <p className="text-muted">Registered users across all roles.</p>
+                </div>
+                <select className="form-select" style={{ width: 'auto', minWidth: '140px' }} value={userRoleFilter} onChange={e => setUserRoleFilter(e.target.value)}>
+                  <option value="">All Roles</option>
+                  <option value="tourist">Tourist</option>
+                  <option value="guide">Guide</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+
+              {users.length === 0 ? (
+                <p className="text-muted" style={{ padding: '2rem 0' }}>No users found.</p>
+              ) : (
+                <table className="admin-list-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Email</th>
+                      <th>Role</th>
+                      <th>Phone</th>
+                      <th>Joined</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.map(u => (
+                      <tr key={u._id}>
+                        <td><strong>{u.name}</strong></td>
+                        <td>{u.email}</td>
+                        <td><span className={`badge badge-${u.role === 'admin' ? 'verified' : u.role === 'guide' ? 'pending' : 'default'}`} style={{ textTransform: 'capitalize' }}>{u.role}</span></td>
+                        <td>{u.phone || '—'}</td>
+                        <td>{new Date(u.createdAt).toLocaleDateString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
+
+          {/* Tab Content: REVIEWS */}
+          {tab === 'reviews' && (
+            <div className="reviews-tab animate-fade-in">
+              <h3>All Reviews</h3>
+              <p className="text-muted" style={{ marginBottom: '1.5rem' }}>Tourist reviews for guides. Delete inappropriate content.</p>
+
+              {reviews.length === 0 ? (
+                <p className="text-muted" style={{ padding: '2rem 0' }}>No reviews found.</p>
+              ) : (
+                <div className="bookings-list">
+                  {reviews.map(r => (
+                    <div className="booking-item card" key={r._id}>
+                      <div className="booking-item-header">
+                        <div>
+                          <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span style={{ color: '#c9a84c' }}>{'\u2605'.repeat(r.rating)}{'\u2606'.repeat(5 - r.rating)}</span>
+                            <span className="text-sm text-muted">({r.rating}/5)</span>
+                          </h4>
+                          <p className="text-muted text-sm">
+                            Guide: <strong>{r.guideProfile?.displayName || 'Guide'}</strong> | Tourist: <strong>{r.user?.name || 'Tourist'}</strong>
+                          </p>
+                        </div>
+                        <span className="text-sm text-muted">{new Date(r.createdAt).toLocaleDateString()}</span>
+                      </div>
+                      <div style={{ padding: 'var(--space-sm) 0', fontSize: '0.95rem', color: 'var(--color-text)' }}>
+                        "{r.review}"
+                      </div>
+                      <div className="booking-item-actions">
+                        <button onClick={() => handleDeleteReview(r._id)} className="btn btn-outline btn-sm" style={{ borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }}>
+                          🗑️ Delete Review
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           )}

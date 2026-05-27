@@ -63,6 +63,19 @@ export default function TouristDashboard() {
     }
   };
 
+  const handleCancel = async (id) => {
+    const reason = window.prompt('Optional: Why are you cancelling this booking?');
+    if (reason === null) return; // user clicked Cancel on prompt
+    if (!window.confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) return;
+    try {
+      await api.patch(`/guide-bookings/${id}/cancel`, { reason: reason || 'Cancelled by tourist' });
+      alert('Booking cancelled successfully.');
+      fetchDashboardData();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to cancel booking');
+    }
+  };
+
   const openReviewModal = (booking) => {
     setSelectedBooking(booking);
     setRating(5);
@@ -196,6 +209,13 @@ export default function TouristDashboard() {
 
                   {booking.completion?.touristConfirmedCompleted && !booking.completion?.guideMarkedCompleted && (
                     <span className="badge badge-pending">Waiting for guide confirmation</span>
+                  )}
+
+                  {/* Cancel Booking */}
+                  {['pending', 'accepted', 'confirmed'].includes(booking.status) && (
+                    <button onClick={() => handleCancel(booking._id)} className="btn btn-outline btn-sm" style={{ borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }}>
+                      ❌ Cancel Booking
+                    </button>
                   )}
                 </div>
               </div>

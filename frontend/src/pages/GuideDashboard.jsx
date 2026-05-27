@@ -17,6 +17,10 @@ export default function GuideDashboard() {
   const [upiAccountName, setUpiAccountName] = useState('');
   const [payoutSubmitting, setPayoutSubmitting] = useState(false);
 
+  // Pricing form state
+  const [pricingForm, setPricingForm] = useState(null);
+  const [pricingSaving, setPricingSaving] = useState(false);
+
   useEffect(() => {
     fetchGuideData();
   }, []);
@@ -125,6 +129,60 @@ export default function GuideDashboard() {
       alert(err.response?.data?.message || 'Failed to request payout');
     } finally {
       setPayoutSubmitting(false);
+    }
+  };
+
+  // ─── Pricing Helpers ───────────────────────────────────────────
+  const initPricingForm = (p) => {
+    setPricingForm({
+      pricePerDay: p.pricePerDay || 0,
+      halfDayPrice: p.halfDayPrice || 0,
+      weekendSurchargePercent: p.weekendSurchargePercent || 0,
+      advanceBookingDiscount: {
+        daysInAdvance: p.advanceBookingDiscount?.daysInAdvance || 0,
+        discountPercent: p.advanceBookingDiscount?.discountPercent || 0
+      },
+      pricingRules: p.pricingRules?.length
+        ? p.pricingRules.map(r => ({ ...r }))
+        : []
+    });
+  };
+
+  const addPricingRule = () => {
+    setPricingForm(prev => ({
+      ...prev,
+      pricingRules: [...prev.pricingRules, { name: '', startMonth: 1, endMonth: 3, multiplier: 1 }]
+    }));
+  };
+
+  const removePricingRule = (idx) => {
+    setPricingForm(prev => ({
+      ...prev,
+      pricingRules: prev.pricingRules.filter((_, i) => i !== idx)
+    }));
+  };
+
+  const updatePricingRule = (idx, field, value) => {
+    setPricingForm(prev => {
+      const rules = [...prev.pricingRules];
+      rules[idx] = { ...rules[idx], [field]: value };
+      return { ...prev, pricingRules: rules };
+    });
+  };
+
+  const handlePricingSave = async () => {
+    if (!pricingForm.pricePerDay || pricingForm.pricePerDay <= 0) {
+      return alert('Daily price must be greater than 0.');
+    }
+    setPricingSaving(true);
+    try {
+      const res = await api.patch('/guide-profiles/me', pricingForm);
+      setProfile(res.data.data.profile);
+      alert('Pricing updated successfully!');
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to update pricing');
+    } finally {
+      setPricingSaving(false);
     }
   };
 
@@ -259,10 +317,120 @@ export default function GuideDashboard() {
         <button className={`dash-tab ${tab === 'payouts' ? 'active' : ''}`} onClick={() => setTab('payouts')}>
           💳 Payouts & UPI ({payouts.length})
         </button>
+        <button className={`dash-tab ${tab === 'pricing' ? 'active' : ''}`} onClick={() => { setTab('pricing'); if (!pricingForm) initPricingForm(profile); }}>
+          💰 Pricing
+        </button>
       </div>
 
-      {/* Payouts Tab Content */}
-      {tab === 'payouts' ? (
+      {/* Pricing Tab Content */}
+      {tab === 'pricing' && pricingForm ? (
+        <div className="pricing-section animate-fade-in">
+          <div className="dashboard-grid">
+            <div>
+              <h3>Update Your Pricing</h3>
+              <p className="text-muted" style={{ marginBottom: '1.5rem' }}>Set your daily rate, seasonal rules, and discounts. Changes take effect for new bookings immediately.</p>
+
+              <div className="grid grid-2" style={{ gap: 'var(--space-lg)', marginBottom: 'var(--space-xl)' }}>
+                <div className="form-group">
+                  <label className="form-label">💰 Price Per Day (₹) *</label>
+                  <input type="number" min={100} className="form-input" value={pricingForm.pricePerDay} onChange={e => setPricingForm(prev => ({ ...prev, pricePerDay: parseInt(e.target.value) || 0 }))} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">🌗 Half-Day Price (₹)</label>
+                  <input type="number" min={0} className="form-input" value={pricingForm.halfDayPrice} onChange={e => setPricingForm(prev => ({ ...prev, halfDayPrice: parseInt(e.target.value) || 0 }))} />
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 'var(--space-xl)' }}>
+                <label className="form-label">📅 Weekend Surcharge: <strong>{pricingForm.weekendSurchargePercent}%</strong></label>
+                <input type="range" min={0} max={50} step={1} value={pricingForm.weekendSurchargePercent} onChange={e => setPricingForm(prev => ({ ...prev, weekendSurchargePercent: parseInt(e.target.value) }))} style={{ width: '100%', accentColor: 'var(--color-accent)' }} />
+                <div className="flex flex-between text-sm text-muted"><span>0%</span><span>50%</span></div>
+              </div>
+
+              <div style={{ padding: 'var(--space-lg)', background: 'var(--color-bg)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-xl)' }}>
+                <label className="form-label" style={{ marginBottom: 'var(--space-md)' }}>🎟️ Advance Booking Discount</label>
+                <div className="grid grid-2" style={{ gap: 'var(--space-md)' }}>
+                  <div className="form-group">
+                    <label className="form-label text-sm">Days in Advance (min)</label>
+                    <input type="number" min={0} className="form-input" value={pricingForm.advanceBookingDiscount.daysInAdvance} onChange={e => setPricingForm(prev => ({ ...prev, advanceBookingDiscount: { ...prev.advanceBookingDiscount, daysInAdvance: parseInt(e.target.value) || 0 } }))} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label text-sm">Discount %</label>
+                    <input type="number" min={0} max={50} className="form-input" value={pricingForm.advanceBookingDiscount.discountPercent} onChange={e => setPricingForm(prev => ({ ...prev, advanceBookingDiscount: { ...prev.advanceBookingDiscount, discountPercent: parseInt(e.target.value) || 0 } }))} />
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 'var(--space-xl)' }}>
+                <div className="flex flex-between" style={{ marginBottom: 'var(--space-md)' }}>
+                  <label className="form-label">📊 Seasonal Pricing Rules</label>
+                  <button type="button" onClick={addPricingRule} className="btn btn-outline btn-sm">➕ Add Season</button>
+                </div>
+
+                {pricingForm.pricingRules.length === 0 ? (
+                  <p className="text-muted text-sm">No seasonal rules. Base price applies all year.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+                    {pricingForm.pricingRules.map((rule, idx) => (
+                      <div key={idx} style={{ padding: 'var(--space-md)', background: 'var(--color-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
+                        <div className="grid grid-2" style={{ gap: 'var(--space-sm)', marginBottom: 'var(--space-sm)' }}>
+                          <div className="form-group">
+                            <label className="form-label text-sm">Season Name</label>
+                            <input type="text" className="form-input" placeholder="e.g. Monsoon Peak" value={rule.name} onChange={e => updatePricingRule(idx, 'name', e.target.value)} />
+                          </div>
+                          <div className="form-group">
+                            <label className="form-label text-sm">Multiplier (0.5x–3x)</label>
+                            <input type="number" className="form-input" min={0.5} max={3} step={0.1} value={rule.multiplier} onChange={e => updatePricingRule(idx, 'multiplier', parseFloat(e.target.value) || 1)} />
+                          </div>
+                        </div>
+                        <div className="grid grid-2" style={{ gap: 'var(--space-sm)' }}>
+                          <div className="form-group">
+                            <label className="form-label text-sm">Start Month</label>
+                            <select className="form-select" value={rule.startMonth} onChange={e => updatePricingRule(idx, 'startMonth', parseInt(e.target.value))}>
+                              {[1,2,3,4,5,6,7,8,9,10,11,12].map(m => <option key={m} value={m}>{['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1]}</option>)}
+                            </select>
+                          </div>
+                          <div className="form-group">
+                            <label className="form-label text-sm">End Month</label>
+                            <select className="form-select" value={rule.endMonth} onChange={e => updatePricingRule(idx, 'endMonth', parseInt(e.target.value))}>
+                              {[1,2,3,4,5,6,7,8,9,10,11,12].map(m => <option key={m} value={m}>{['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1]}</option>)}
+                            </select>
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right', marginTop: 'var(--space-sm)' }}>
+                          <button type="button" onClick={() => removePricingRule(idx)} className="btn btn-ghost btn-sm" style={{ color: 'var(--color-danger)' }}>🗑️ Remove</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-md)' }}>
+                <button onClick={() => initPricingForm(profile)} className="btn btn-ghost btn-sm" disabled={pricingSaving}>Reset</button>
+                <button onClick={handlePricingSave} className="btn btn-accent" disabled={pricingSaving}>
+                  {pricingSaving ? 'Saving...' : '💾 Save Pricing'}
+                </button>
+              </div>
+            </div>
+
+            <div className="dashboard-sidebar-card">
+              <h3>Pricing Tips</h3>
+              <p className="text-sm text-muted">Your base daily rate is the starting point. Seasonal rules multiply it for peak/off-peak months.</p>
+              <div className="text-sm">
+                <strong>Example:</strong>
+                <ul style={{ paddingLeft: '1.25rem', marginTop: '0.25rem' }}>
+                  <li>Base: ₹1500/day</li>
+                  <li>Monsoon (Jun–Sep) at 1.5x = ₹2250</li>
+                  <li>Weekday bookings stay at base</li>
+                  <li>Weekend bookings get surcharge %</li>
+                </ul>
+              </div>
+              <p className="text-sm text-muted">Advance discount rewards tourists who plan ahead — great for filling your calendar early.</p>
+            </div>
+          </div>
+        </div>
+      ) : tab === 'payouts' ? (
         <div className="payouts-section">
           <div className="dashboard-grid">
             <div>

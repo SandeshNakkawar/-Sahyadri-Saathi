@@ -295,6 +295,44 @@
   gap: var(--space-xs);
 }
 
+/* Badge Variants */
+.badge-danger {
+  background-color: rgba(192, 57, 43, 0.1);
+  color: #c0392b;
+  border: 1px solid rgba(192, 57, 43, 0.2);
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.badge-default {
+  background-color: var(--color-stone);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* Grid utility classes for forms */
+.grid {
+  display: grid;
+}
+.grid-2 {
+  grid-template-columns: 1fr 1fr;
+}
+.grid-3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+@media (max-width: 640px) {
+  .grid-2, .grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Responsive Dashboards */
 @media (max-width: 1024px) {
   .dashboard-grid {
