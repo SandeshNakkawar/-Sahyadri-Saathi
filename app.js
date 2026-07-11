@@ -44,11 +44,7 @@ app.post(
 // Serving static files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Serve frontend static assets if built
-const frontendDistPath = path.join(__dirname, 'frontend', 'dist');
-if (require('fs').existsSync(frontendDistPath)) {
-  app.use(express.static(frontendDistPath));
-}
+
 
 // Set security HTTP headers
 app.use(helmet());
@@ -121,21 +117,17 @@ app.use('/api/v1/reviews', reviewRouter);
 app.use('/api/v1/admin', adminRouter);
 app.use('/api/v1/conversations', conversationRouter);
 
-// 3) Catch-all for React Frontend / API 404s
+// 3) Health check endpoint
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'success',
+    message: 'Sahyadri Saathi API is running'
+  });
+});
+
+// 4) Handle undefined routes
 app.all('*', (req, res, next) => {
-  // If request is for an API route, return 404
-  if (req.originalUrl.startsWith('/api')) {
-    return next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
-  }
-
-  // Otherwise, serve the React app index.html if built
-  const indexHtmlPath = path.join(__dirname, 'frontend', 'dist', 'index.html');
-  if (require('fs').existsSync(indexHtmlPath)) {
-    return res.sendFile(indexHtmlPath);
-  }
-
-  // Fallback if frontend is not built
-  next(new AppError(`Can't find ${req.originalUrl} on this server! (Frontend not built: run "npm run build" in frontend directory)`, 404));
+  next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
 });
 
 app.use(globalErrorHandler);
