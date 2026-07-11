@@ -7,7 +7,11 @@ const mongoose = require('mongoose');
 const app = require('./app');
 //const retryService = require('./services/retryService');
 
-const DB = process.env.DATABASE.replace('<PASSWORD>', encodeURIComponent(process.env.DATABASE_PASSWORD));
+const DB = process.env.DATABASE.replace(
+  '<DATABASE_PASSWORD>',
+  process.env.DATABASE_PASSWORD
+);
+
 
 mongoose.connect(DB).then( (con) => {
   console.log("Database is successfully connected... !!!")

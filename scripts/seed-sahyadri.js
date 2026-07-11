@@ -1,14 +1,13 @@
-/**
- * Seed Script — Sahyadri Saathi
- * 
- * Creates fresh seed data for the guide marketplace.
- * Run: node scripts/seed-sahyadri.js
- * 
- * WARNING: This will drop existing collections and create new ones.
- */
 
+const path = require('path');
 const dotenv = require('dotenv');
-dotenv.config();
+
+
+
+dotenv.config({
+  path: path.join(__dirname, '..', '.env')
+});
+
 
 const dns = require('dns');
 dns.setDefaultResultOrder('ipv4first');
@@ -22,7 +21,7 @@ const GuideProfile = require('../models/guideProfileModel');
 const GuideBooking = require('../models/guideBookingModel');
 const Review = require('../models/reviewModel');
 
-const DB = process.env.DATABASE.replace('<PASSWORD>', process.env.DATABASE_PASSWORD);
+const DB = process.env.DATABASE.replace('<DATABASE_PASSWORD>', process.env.DATABASE_PASSWORD);
 
 async function seed() {
   try {
